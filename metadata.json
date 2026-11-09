@@ -1,0 +1,6 @@
+{
+  "name": "AURA.",
+  "description": "GIVES YOU DIFFERENT VIBE — Premium fashion brand platform featuring drops, curated style looks, lookbook, journal, shop, bag, order tracking, and admin business suite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

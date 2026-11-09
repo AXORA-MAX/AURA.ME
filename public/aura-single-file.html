@@ -1,0 +1,3104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA. — GIVES YOU DIFFERENT VIBE | Luxury Streetwear & Heavyweight Fashion</title>
+  <meta name="description" content="AURA. official shopping destination. Heavyweight oversized cotton tees, architectural silhouettes, technical cargo trousers, and limited-edition drops engineered for distinct personal vibe.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="AURA. — GIVES YOU DIFFERENT VIBE">
+  <meta property="og:description" content="Luxury streetwear engineered with custom-milled heavyweight 280 GSM cotton and relaxed modern silhouettes.">
+  <meta property="og:image" content="/assets/img_hero_fashion.jpg">
+  <meta property="og:type" content="website">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="/assets/img_app_icon.jpg">
+
+  <!-- Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Icons: Font Awesome 6.4.0 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Stylesheet -->
+  <style>
+/* AURA. Fashion Design Tokens */
+:root {
+  --primary: #111111;
+  --primary-accent: #18181b;
+  --primary-soft: #e0e7ff;
+  --bg-body: #f7f7f5;
+  --surface: #ffffff;
+  --surface-sub: #f4f4f5;
+  --text-main: #111111;
+  --text-sub: #71717a;
+  --text-muted: #a1a1aa;
+  --border: #e4e4e7;
+  --border-dark: #27272a;
+  --success: #16a34a;
+  --danger: #ef4444;
+  --gold: #d4af37;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+  --header-height: 64px;
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-float: 0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Header & Navigation */
+.promo-bar {
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  text-align: center;
+  padding: 6px 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.promo-bar span.accent {
+  color: var(--gold);
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  transition: box-shadow 0.2s;
+}
+
+.header-inner {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-name {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--primary);
+}
+
+.brand-dot {
+  color: var(--gold);
+}
+
+.brand-tagline {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-link {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  position: relative;
+  padding: 6px 0;
+  transition: color 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--primary);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  font-size: 16px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: var(--surface-sub);
+}
+
+.badge-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Mobile Nav Toggle */
+.mobile-toggle {
+  display: none;
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Hero Section */
+.hero-banner {
+  position: relative;
+  height: 580px;
+  background: #09090b;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: 20px auto 40px;
+  display: flex;
+  align-items: center;
+}
+
+.hero-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.65;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(10,10,12,0.9) 0%, rgba(10,10,12,0.4) 60%, rgba(10,10,12,0.1) 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  padding: 0 48px;
+  color: #fff;
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.hero-pill .dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.hero-title {
+  font-size: 54px;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: #d4d4d8;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.btn-luxury {
+  background: #ffffff;
+  color: var(--primary);
+  padding: 14px 28px;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+
+.btn-luxury:hover {
+  background: var(--bg-body);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-luxury-outline {
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+
+.btn-luxury-outline:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: #fff;
+}
+
+.btn-dark {
+  background: var(--primary);
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+
+.btn-dark:hover {
+  background: #27272a;
+}
+
+.btn-dark:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Category Quick Bar */
+.category-bar {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 36px;
+  scrollbar-width: none;
+}
+
+.category-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-chip {
+  padding: 10px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-chip:hover, .cat-chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 4px;
+}
+
+.section-link {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-link:hover {
+  color: var(--gold);
+}
+
+/* Product Grid & Cards */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.product-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.25s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.product-img-box {
+  position: relative;
+  aspect-ratio: 4/5;
+  background: #18181b;
+  overflow: hidden;
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.04);
+}
+
+.badge-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(17, 17, 17, 0.85);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.badge-tag.drop {
+  background: var(--gold);
+  color: #111;
+}
+
+.badge-tag.sale {
+  background: var(--danger);
+  color: #fff;
+}
+
+.wishlist-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-sub);
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.wishlist-toggle:hover, .wishlist-toggle.active {
+  color: var(--danger);
+  background: #fff;
+}
+
+.product-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.product-cat {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-sub);
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.product-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.product-tagline {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.4;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.price-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.price-current {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.price-original {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.stock-indicator {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stock-indicator.in-stock {
+  color: var(--success);
+}
+
+.stock-indicator.low-stock {
+  color: #f59e0b;
+}
+
+.stock-indicator.out-of-stock {
+  color: var(--danger);
+}
+
+/* Flash Drop & Lookbook Capsules */
+.capsule-card {
+  background: #18181b;
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  margin-bottom: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.capsule-badge {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.capsule-title {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.capsule-desc {
+  font-size: 15px;
+  color: #a1a1aa;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.countdown-box {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.countdown-unit {
+  background: #27272a;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  text-align: center;
+  min-width: 64px;
+}
+
+.countdown-num {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.countdown-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+}
+
+/* Footer */
+.site-footer {
+  background: #111111;
+  color: #fff;
+  padding: 64px 0 32px;
+  border-top: 1px solid #27272a;
+  margin-top: 64px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.footer-brand .brand-name {
+  color: #fff;
+}
+
+.footer-tagline {
+  color: #a1a1aa;
+  font-size: 13px;
+  margin: 12px 0 20px;
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 12px;
+}
+
+.footer-socials a {
+  width: 36px;
+  height: 36px;
+  background: #27272a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.footer-socials a:hover {
+  background: var(--gold);
+  color: #111;
+}
+
+.footer-col-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-links a {
+  color: #a1a1aa;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+.newsletter-box input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+.footer-bottom {
+  padding-top: 24px;
+  border-top: 1px solid #27272a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #71717a;
+}
+
+/* Modals & Drawers */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-float);
+}
+
+.drawer-panel.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.drawer-close {
+  font-size: 20px;
+  color: var(--text-sub);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.drawer-close:hover {
+  background: var(--surface-sub);
+  color: var(--text-main);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.drawer-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Cart Item in Drawer */
+.cart-item {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-item-img {
+  width: 76px;
+  height: 95px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: #18181b;
+}
+
+.cart-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-item-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.cart-item-meta {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.cart-item-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-sub);
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-main);
+}
+
+.qty-val {
+  width: 28px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Admin Live Sync Floating Pill */
+.admin-sync-pill {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  padding: 10px 18px;
+  box-shadow: var(--shadow-float);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transition: transform 0.2s;
+}
+
+.admin-sync-pill:hover {
+  transform: scale(1.04);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #111;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid #333;
+  animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .capsule-card {
+    grid-template-columns: 1fr;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .mobile-toggle {
+    display: flex;
+  }
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .hero-banner {
+    height: 480px;
+  }
+  .hero-title {
+    font-size: 34px;
+  }
+  .hero-content {
+    padding: 0 24px;
+  }
+  .capsule-card {
+    padding: 24px;
+  }
+  .capsule-title {
+    font-size: 26px;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+</style>
+
+  <!-- Firebase v10 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="promo-bar">
+    <span>DROP 04 : MONOLITH CAPSULE NOW LIVE</span>
+    <span>•</span>
+    <span>COMPLIMENTARY EXPRESS DELIVERY OVER <strong class="accent">৳3,000</strong></span>
+    <span>•</span>
+    <span>USE CODE <strong class="accent">AURA10</strong> FOR 10% OFF</span>
+  </div>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Mobile Menu + Logo -->
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="mobile-toggle" onclick="navigateTo('#shop')">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <a href="#home" class="brand-logo">
+          <span class="brand-name">AURA<span class="brand-dot">.</span></span>
+          <span class="brand-tagline">GIVES YOU DIFFERENT VIBE</span>
+        </a>
+      </div>
+
+      <!-- Center: Navigation -->
+      <nav class="nav-links">
+        <a href="#home" class="nav-link">Home</a>
+        <a href="#shop" class="nav-link">Shop</a>
+        <a href="#shop" onclick="filterCategory('Tees')" class="nav-link">Tees</a>
+        <a href="#shop" onclick="filterCategory('Hoodies')" class="nav-link">Hoodies</a>
+        <a href="#shop" onclick="filterCategory('Pants')" class="nav-link">Pants</a>
+        <a href="#lookbook" class="nav-link">Lookbook</a>
+        <a href="#journal" class="nav-link">Journal</a>
+      </nav>
+
+      <!-- Right: Action Buttons -->
+      <div class="header-actions">
+        <button class="action-btn" onclick="navigateTo('#shop')" title="Search Catalogue">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        <button class="action-btn" onclick="navigateTo('#wishlist')" title="Saved Wishlist">
+          <i class="fa-regular fa-heart"></i>
+          <span id="wishlist-badge" class="badge-count" style="display: none;">0</span>
+        </button>
+        <button class="action-btn" onclick="toggleCartDrawer(true)" title="Shopping Bag">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span id="cart-badge" class="badge-count" style="display: none;">0</span>
+        </button>
+        <button id="auth-action-btn" class="action-btn" onclick="navigateTo('#account')" title="Account Profile">
+          <i class="fa-regular fa-user"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Render Canvas -->
+  <main id="app-main"></main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand-name">AURA<span class="brand-dot">.</span></div>
+          <p class="footer-tagline">Engineered for distinct personal presence. Crafted in Dhaka with heavy custom-milled organic French terry and architectural silhouettes.</p>
+          <div class="footer-socials">
+            <a href="https://instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://facebook.com" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="https://tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-col-title">COLLECTIONS</h4>
+          <ul class="footer-links">
+            <li><a href="#shop" onclick="filterCategory('Tees')">Heavyweight Tees</a></li>
+            <li><a href="#shop" onclick="filterCategory('Hoodies')">Loopback Hoodies</a></li>
+            <li><a href="#shop" onclick="filterCategory('Pants')">Technical Cargos</a></li>
+            <li><a href="#shop" onclick="filterCategory('Accessories')">PVD Jewelry</a></li>
+            <li><a href="#lookbook">Autumn/Winter Lookbook</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-col-title">CLIENT SERVICE</h4>
+          <ul class="footer-links">
+            <li><a href="#account/orders">Track Pathao Parcel</a></li>
+            <li><a href="#journal">Size & Fit Guide</a></li>
+            <li><a href="#journal">Fabric & Care (280 GSM)</a></li>
+            <li><a href="#account">Member Benefits</a></li>
+            <li><a href="#account/orders">Return & Exchange</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-col-title">VIP DROP ACCESS</h4>
+          <p style="font-size: 13px; color: #a1a1aa; margin-bottom: 12px;">Subscribe for early notifications on limited capsule releases before public launch.</p>
+          <form class="newsletter-box" onsubmit="event.preventDefault(); showToast('VIP Drop Access Confirmed!'); this.reset();">
+            <input type="email" placeholder="Enter your email" required>
+            <button type="submit" class="btn-luxury" style="width: 100%; justify-content: center; padding: 12px;">JOIN THE AURA</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2026 AURA. FASHION. ALL RIGHTS RESERVED.</div>
+        <div style="display: flex; gap: 20px;">
+          <a href="#journal">Privacy Policy</a>
+          <a href="#journal">Terms of Service</a>
+          <a href="#journal">Security Standards</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Slide-out Cart Drawer -->
+  <div id="cart-backdrop" class="drawer-backdrop" onclick="toggleCartDrawer(false)"></div>
+  <aside id="cart-drawer" class="drawer-panel">
+    <div class="drawer-header">
+      <div class="drawer-title" style="display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-bag-shopping"></i>
+        <span>SHOPPING BAG</span>
+      </div>
+      <button class="drawer-close" onclick="toggleCartDrawer(false)">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="drawer-cart-items" class="drawer-body"></div>
+    <div id="drawer-cart-footer" class="drawer-footer"></div>
+  </aside>
+
+  <!-- Admin Live Sync Pill (Directly tests Firebase real-time synchronization) -->
+  <div class="admin-sync-pill" onclick="toggleAdminDrawer(true)">
+    <div id="sync-status-badge" style="display: flex; align-items: center; gap: 8px;">
+      <span class="sync-dot"></span>
+      <span>AURA CLOUD SYNC: ACTIVE</span>
+    </div>
+    <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-size: 10px;">TEST CONTROLS</span>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+// ==========================================
+// FIREBASE CONFIG & INTEGRATION
+// ==========================================
+// AURA. Firebase Integration Layer (Project: aura-f4291)
+const firebaseConfig = {
+  apiKey: "AIzaSyDPdl2WAQMqmeGhy357vBTnceir0GV7hQQ",
+  authDomain: "aura-f4291.firebaseapp.com",
+  projectId: "aura-f4291",
+  storageBucket: "aura-f4291.firebasestorage.app",
+  messagingSenderId: "1079994325680",
+  appId: "1:1079994325680:web:aura-website"
+};
+
+// Initialize Firebase
+let app, auth, db;
+try {
+  if (!firebase.apps.length) {
+    app = firebase.initializeApp(firebaseConfig);
+  } else {
+    app = firebase.app();
+  }
+  auth = firebase.auth();
+  db = firebase.firestore();
+  console.log("AURA Firebase connected successfully to project:", firebaseConfig.projectId);
+} catch (err) {
+  console.warn("Firebase initialization warning (offline fallback active):", err);
+}
+
+// Initial Standard Products Catalog (From AURA User Android App)
+const defaultProducts = [
+  {
+    id: "aura-p1",
+    name: "AURA OVERSIZED TEE",
+    tagline: "Heavyweight cotton boxy cut with dropped shoulders",
+    price: 1290,
+    originalPrice: 1590,
+    category: "Tees",
+    style: "Oversized",
+    rating: 4.9,
+    reviewCount: 84,
+    colors: [
+      { name: "Onyx Black", hex: "#111111" },
+      { name: "Chalk White", hex: "#F5F5F5" },
+      { name: "Heather Grey", hex: "#8E8E93" }
+    ],
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    stockPerSize: { S: 14, M: 22, L: 16, XL: 7, XXL: 3 },
+    description: "The cornerstone of the AURA silhouette. Cut from custom-milled 280 GSM combed organic cotton, this oversized tee features a thick 1.25\" rib collar, double-needle cover-stitched seams, and an effortless drop shoulder drape that retains structure wash after wash.",
+    fabric: "100% Combed Organic Cotton (280 GSM French Jersey)",
+    fit: "Oversized Boxy drape. Size down for true-to-size look.",
+    care: "Machine wash cold inside out with like colors. Air dry.",
+    image: "/assets/img_hero_fashion.jpg",
+    badge: "Bestseller",
+    isNew: true,
+    isDrop: false,
+    isFeatured: true,
+    published: true
+  },
+  {
+    id: "aura-p2",
+    name: "AURA CARGO TROUSERS",
+    tagline: "Modular pleated cargo with bungee drawstring cuffs",
+    price: 2490,
+    originalPrice: 2890,
+    category: "Pants",
+    style: "Streetwear",
+    rating: 4.8,
+    reviewCount: 59,
+    colors: [
+      { name: "Onyx Black", hex: "#111111" },
+      { name: "Desert Sand", hex: "#D8C7B5" }
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    stockPerSize: { S: 8, M: 12, L: 6, XL: 2 },
+    description: "Crafted from durable water-repellent ripstop cotton blend, our technical cargo features articulated knee darting, magnetic pocket flaps, and adjustable bungee toggles at the ankles for customizable silhouette transitions.",
+    fabric: "Cotton-Poly Ripstop (260 GSM) with matte Teflon finish",
+    fit: "Relaxed tapered fit with ankle cinch cords.",
+    care: "Hand or delicate machine wash. Iron on reverse.",
+    image: "/assets/img_complete_look.jpg",
+    badge: "New Drop",
+    isNew: false,
+    isDrop: true,
+    isFeatured: true,
+    published: true
+  },
+  {
+    id: "aura-p3",
+    name: "AURA SHADOW HOODIE",
+    tagline: "450 GSM French Terry heavyweight architectural hoodie",
+    price: 3290,
+    originalPrice: 3800,
+    category: "Hoodies",
+    style: "Premium",
+    rating: 5.0,
+    reviewCount: 112,
+    colors: [
+      { name: "Onyx Black", hex: "#111111" },
+      { name: "Heather Grey", hex: "#8E8E93" },
+      { name: "Midnight Navy", hex: "#1B263B" }
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    stockPerSize: { S: 6, M: 14, L: 8, XL: 4 },
+    description: "Engineered for maximum presence. Constructed with double-lined hood with zero drawstrings for pure minimalist luxury lines, kangaroo pouch with concealed zip key slot, and pre-shrunk heavyweight loopback terry.",
+    fabric: "450 GSM Ultra-Heavyweight French Terry",
+    fit: "Structured Boxy Fit with wide body & snug waist rib.",
+    care: "Dry clean or cold hand wash. Lay flat to dry.",
+    image: "/assets/img_lookbook_urban.jpg",
+    badge: "App Exclusive",
+    isNew: true,
+    isDrop: true,
+    isFeatured: true,
+    published: true
+  },
+  {
+    id: "aura-p4",
+    name: "AURA MATTE MINIMAL PENDANT",
+    tagline: "Surgical grade 316L stainless steel geometric necklace",
+    price: 890,
+    originalPrice: 1150,
+    category: "Accessories",
+    style: "Premium",
+    rating: 4.7,
+    reviewCount: 38,
+    colors: [
+      { name: "Onyx Black", hex: "#111111" },
+      { name: "Silver", hex: "#E2E8F0" }
+    ],
+    sizes: ["One Size"],
+    stockPerSize: { "One Size": 25 },
+    description: "Subtle modern luxury accent. Laser engraved with the AURA. coordinates and finished in brushed matte graphite PVD coating resistant to tarnishing and sweat.",
+    fabric: "316L Solid Stainless Steel with PVD Matte Coating",
+    fit: "55cm curb chain with 5cm extension clasp.",
+    care: "Wipe with micro-fiber cloth. Waterproof.",
+    image: "/assets/img_app_icon.jpg",
+    badge: "Hardware",
+    isNew: false,
+    isDrop: false,
+    isFeatured: false,
+    published: true
+  },
+  {
+    id: "aura-p5",
+    name: "AURA RELAXED LINEN-TOUCH SHIRT",
+    tagline: "Camp collar breathable leisure shirt for warm evenings",
+    price: 1890,
+    originalPrice: 2200,
+    category: "Men",
+    style: "Relaxed",
+    rating: 4.6,
+    reviewCount: 27,
+    colors: [
+      { name: "Chalk White", hex: "#F5F5F5" },
+      { name: "Desert Sand", hex: "#D8C7B5" }
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    stockPerSize: { S: 10, M: 15, L: 9, XL: 3 },
+    description: "Clean silhouette with an open Cuban camp collar, mother-of-pearl buttons, and lightweight textured linen blend for effortless tropical and summer vibes.",
+    fabric: "65% Linen, 35% Modal (170 GSM)",
+    fit: "Relaxed breezy fit with straight hem and side slits.",
+    care: "Cold delicate wash. Low iron when damp.",
+    image: "/assets/img_complete_look.jpg",
+    badge: "Summer Capsule",
+    isNew: true,
+    isDrop: false,
+    isFeatured: false,
+    published: true
+  },
+  {
+    id: "aura-p6",
+    name: "AURA SCULPTED CROPPED BOMBER",
+    tagline: "Cropped insulated bomber with high-density silver hardware",
+    price: 3990,
+    originalPrice: 4500,
+    category: "Unisex",
+    style: "Streetwear",
+    rating: 4.9,
+    reviewCount: 43,
+    colors: [
+      { name: "Onyx Black", hex: "#111111" },
+      { name: "Midnight Navy", hex: "#1B263B" }
+    ],
+    sizes: ["S", "M", "L"],
+    stockPerSize: { S: 5, M: 7, L: 3 },
+    description: "A statement silhouette featuring exaggerated dropped sleeves, custom chunky two-way front zip, thermal orange interior lining, and storm flap closure.",
+    fabric: "Nylon Twill with 80g Primaloft Eco Insulation",
+    fit: "Cropped length with voluminous articulated sleeves.",
+    care: "Specialist spot clean or professional dry clean.",
+    image: "/assets/img_lookbook_urban.jpg",
+    badge: "Limited Drop",
+    isNew: false,
+    isDrop: true,
+    isFeatured: true,
+    published: true
+  }
+];
+
+// Active State Cache
+window.AURA_STATE = {
+  products: [...defaultProducts],
+  cart: JSON.parse(localStorage.getItem('aura_cart') || '[]'),
+  wishlist: JSON.parse(localStorage.getItem('aura_wishlist') || '["aura-p1", "aura-p3"]'),
+  user: null,
+  orders: [],
+  coupons: [
+    { code: "AURA10", discountPercent: 10, minSpend: 1500, desc: "10% OFF over ৳1,500" },
+    { code: "AURANEW", discountPercent: 15, minSpend: 2500, desc: "15% OFF for first drop order" },
+    { code: "FREESHIP", discountPercent: 100, minSpend: 3000, desc: "Free Delivery over ৳3,000", isFreeShipping: true }
+  ],
+  appliedCoupon: null,
+  firebaseConnected: false
+};
+
+// Seed Products to Firestore if empty
+async function seedFirestoreProducts() {
+  if (!db) return;
+  try {
+    const snap = await db.collection("products").get();
+    if (snap.empty) {
+      console.log("Seeding initial products into Firestore...");
+      const batch = db.batch();
+      defaultProducts.forEach(p => {
+        const ref = db.collection("products").document(p.id);
+        batch.set(ref, p);
+      });
+      await batch.commit();
+      console.log("Firestore products seeded successfully.");
+    }
+  } catch (err) {
+    console.warn("Firestore seeding notice (operating with local state):", err.message);
+  }
+}
+
+// Start Realtime Listeners
+function initFirebaseListeners(onProductsUpdate, onOrdersUpdate) {
+  if (!db) {
+    onProductsUpdate(window.AURA_STATE.products);
+    return;
+  }
+
+  // Realtime Products Listener
+  db.collection("products").onSnapshot(snapshot => {
+    window.AURA_STATE.firebaseConnected = true;
+    updateSyncBadge(true);
+    if (!snapshot.empty) {
+      const liveList = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        liveList.push({ id: doc.id, ...data });
+      });
+      window.AURA_STATE.products = liveList;
+      onProductsUpdate(liveList);
+    } else {
+      seedFirestoreProducts();
+      onProductsUpdate(window.AURA_STATE.products);
+    }
+  }, err => {
+    console.warn("Products listener error:", err.message);
+    window.AURA_STATE.firebaseConnected = false;
+    updateSyncBadge(false);
+    onProductsUpdate(window.AURA_STATE.products);
+  });
+
+  // Auth State Listener
+  if (auth) {
+    auth.onAuthStateChanged(user => {
+      window.AURA_STATE.user = user;
+      updateAuthUI(user);
+      if (user) {
+        listenToUserOrders(user.uid, onOrdersUpdate);
+      } else {
+        // Anonymous or guest mode
+        auth.signInAnonymously().catch(() => {});
+      }
+    });
+  }
+}
+
+// Listen to User's Orders in Firestore
+function listenToUserOrders(uid, onOrdersUpdate) {
+  if (!db) return;
+  db.collection("orders")
+    .where("userId", "in", [uid, "guest", ""])
+    .onSnapshot(snapshot => {
+      const orders = [];
+      snapshot.forEach(doc => {
+        orders.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort newest first
+      orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      window.AURA_STATE.orders = orders;
+      if (onOrdersUpdate) onOrdersUpdate(orders);
+    }, err => {
+      console.warn("Orders listener notice:", err.message);
+    });
+}
+
+// Save Order to Firestore
+async function createFirebaseOrder(orderData) {
+  if (db) {
+    try {
+      await db.collection("orders").doc(orderData.id).set({
+        ...orderData,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("Order saved to Firestore:", orderData.id);
+      return true;
+    } catch (e) {
+      console.warn("Could not write order to Firestore, saving locally:", e.message);
+    }
+  }
+  // Local fallback
+  window.AURA_STATE.orders.unshift(orderData);
+  return true;
+}
+
+// Admin Operations for Live Testing
+async function adminUpdatePrice(productId, newPrice) {
+  const p = window.AURA_STATE.products.find(x => x.id === productId);
+  if (p) p.price = Number(newPrice);
+  if (db) {
+    try {
+      await db.collection("products").doc(productId).update({ price: Number(newPrice) });
+    } catch (e) { console.warn(e); }
+  }
+  window.renderCurrentView();
+}
+
+async function adminUpdateStock(productId, size, stock) {
+  const p = window.AURA_STATE.products.find(x => x.id === productId);
+  if (p && p.stockPerSize) {
+    p.stockPerSize[size] = Number(stock);
+  }
+  if (db) {
+    try {
+      await db.collection("products").doc(productId).update({
+        [`stockPerSize.${size}`]: Number(stock)
+      });
+    } catch (e) { console.warn(e); }
+  }
+  window.renderCurrentView();
+}
+
+async function adminTogglePublish(productId) {
+  const p = window.AURA_STATE.products.find(x => x.id === productId);
+  if (p) {
+    p.published = !p.published;
+    if (db) {
+      try {
+        await db.collection("products").doc(productId).update({ published: p.published });
+      } catch (e) { console.warn(e); }
+    }
+    window.renderCurrentView();
+  }
+}
+
+async function adminUpdateOrderStatus(orderId, newStatus) {
+  const o = window.AURA_STATE.orders.find(x => x.id === orderId);
+  if (o) o.status = newStatus;
+  if (db) {
+    try {
+      await db.collection("orders").doc(orderId).update({ status: newStatus });
+    } catch (e) { console.warn(e); }
+  }
+  window.renderCurrentView();
+}
+
+
+// ==========================================
+// AURA STORE ENGINE & UI ROUTER
+// ==========================================
+// AURA. Web Application Router & Controller
+
+// Utility helpers
+function formatBDT(amount) {
+  return '৳' + Number(amount || 0).toLocaleString('en-US');
+}
+
+function showToast(msg) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Global UI State
+let activeCategory = 'All';
+let activeStyle = 'All';
+let searchQuery = '';
+let sortBy = 'featured';
+let selectedColor = null;
+let selectedSize = null;
+let selectedQty = 1;
+
+// Router Handler
+function getRoute() {
+  const hash = window.location.hash || '#home';
+  const parts = hash.slice(1).split('/');
+  return {
+    view: parts[0] || 'home',
+    sub: parts[1] || null,
+    id: parts[2] || parts[1] || null
+  };
+}
+
+function navigateTo(hash) {
+  window.location.hash = hash;
+  window.scrollTo(0, 0);
+}
+
+// Update Active Nav Link
+function updateNavLinks(view) {
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const target = link.getAttribute('href').replace('#', '');
+    if (target === view || (view === 'home' && target === '')) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
+}
+
+// Update Cart and Wishlist Badges
+function updateCounters() {
+  const totalCart = window.AURA_STATE.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalWish = window.AURA_STATE.wishlist.length;
+  
+  const cartBadge = document.getElementById('cart-badge');
+  if (cartBadge) {
+    cartBadge.textContent = totalCart;
+    cartBadge.style.display = totalCart > 0 ? 'flex' : 'none';
+  }
+  const wishBadge = document.getElementById('wishlist-badge');
+  if (wishBadge) {
+    wishBadge.textContent = totalWish;
+    wishBadge.style.display = totalWish > 0 ? 'flex' : 'none';
+  }
+}
+
+// Update Sync Badge
+function updateSyncBadge(isConnected) {
+  const badge = document.getElementById('sync-status-badge');
+  if (badge) {
+    badge.innerHTML = `
+      <span class="sync-dot" style="background: ${isConnected ? 'var(--success)' : '#f59e0b'}"></span>
+      <span>${isConnected ? 'AURA CLOUD SYNC: ACTIVE' : 'AURA OFFLINE MODE'}</span>
+    `;
+  }
+}
+
+// Update Auth UI in Header
+function updateAuthUI(user) {
+  const authBtn = document.getElementById('auth-action-btn');
+  if (!authBtn) return;
+  if (user && !user.isAnonymous) {
+    authBtn.innerHTML = '<i class="fa-solid fa-user-check"></i>';
+    authBtn.title = `Account: ${user.email || 'Member'}`;
+  } else {
+    authBtn.innerHTML = '<i class="fa-regular fa-user"></i>';
+    authBtn.title = 'Sign In';
+  }
+}
+
+// Cart Drawer Controls
+function toggleCartDrawer(open) {
+  const drawer = document.getElementById('cart-drawer');
+  const backdrop = document.getElementById('cart-backdrop');
+  if (drawer && backdrop) {
+    if (open) {
+      renderCartDrawer();
+      drawer.classList.add('open');
+      backdrop.classList.add('open');
+    } else {
+      drawer.classList.remove('open');
+      backdrop.classList.remove('open');
+    }
+  }
+}
+
+// Wishlist Toggle
+function toggleWishlist(productId) {
+  const list = window.AURA_STATE.wishlist;
+  const idx = list.indexOf(productId);
+  if (idx > -1) {
+    list.splice(idx, 1);
+    showToast("Removed from wishlist");
+  } else {
+    list.push(productId);
+    showToast("Saved to wishlist");
+  }
+  localStorage.setItem('aura_wishlist', JSON.stringify(list));
+  updateCounters();
+  renderCurrentView();
+}
+
+// Cart Operations
+function addToCart(product, color, size, quantity = 1) {
+  const cart = window.AURA_STATE.cart;
+  const existing = cart.find(item => item.productId === product.id && item.color.name === color.name && item.size === size);
+  
+  // Stock Check
+  const availableStock = product.stockPerSize ? (product.stockPerSize[size] || 0) : 10;
+  const currentInCart = existing ? existing.quantity : 0;
+  
+  if (currentInCart + quantity > availableStock) {
+    showToast(`Sorry, only ${availableStock} units available in size ${size}`);
+    return false;
+  }
+
+  if (existing) {
+    existing.quantity += quantity;
+  } else {
+    cart.push({
+      id: 'cart-' + Date.now(),
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      color: color,
+      size: size,
+      quantity: quantity
+    });
+  }
+
+  localStorage.setItem('aura_cart', JSON.stringify(cart));
+  updateCounters();
+  showToast(`Added ${quantity}× ${product.name} (${size}) to bag`);
+  toggleCartDrawer(true);
+  return true;
+}
+
+function updateCartQty(cartItemId, delta) {
+  const cart = window.AURA_STATE.cart;
+  const item = cart.find(x => x.id === cartItemId);
+  if (!item) return;
+
+  const product = window.AURA_STATE.products.find(p => p.id === item.productId);
+  const maxStock = (product && product.stockPerSize) ? (product.stockPerSize[item.size] || 99) : 99;
+
+  item.quantity += delta;
+  if (item.quantity > maxStock) {
+    item.quantity = maxStock;
+    showToast(`Max available stock reached (${maxStock})`);
+  }
+  if (item.quantity <= 0) {
+    window.AURA_STATE.cart = cart.filter(x => x.id !== cartItemId);
+    showToast("Item removed from bag");
+  }
+  localStorage.setItem('aura_cart', JSON.stringify(window.AURA_STATE.cart));
+  updateCounters();
+  renderCartDrawer();
+  if (getRoute().view === 'cart') renderCurrentView();
+}
+
+// Calculations
+function getCartTotals() {
+  const items = window.AURA_STATE.cart;
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  let discount = 0;
+  const coupon = window.AURA_STATE.appliedCoupon;
+  if (coupon && subtotal >= coupon.minSpend) {
+    if (coupon.isFreeShipping) {
+      discount = 0; // handled in delivery fee
+    } else {
+      discount = Math.round((subtotal * coupon.discountPercent) / 100);
+    }
+  }
+
+  let deliveryFee = 100;
+  if (subtotal >= 3000 || (coupon && coupon.isFreeShipping)) {
+    deliveryFee = 0;
+  }
+  if (items.length === 0) deliveryFee = 0;
+
+  const total = Math.max(0, subtotal - discount + deliveryFee);
+  return { subtotal, discount, deliveryFee, total };
+}
+
+// Render Cart in Slide-out Drawer
+function renderCartDrawer() {
+  const container = document.getElementById('drawer-cart-items');
+  const footer = document.getElementById('drawer-cart-footer');
+  if (!container || !footer) return;
+
+  const cart = window.AURA_STATE.cart;
+  if (cart.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px;">
+        <i class="fa-solid fa-bag-shopping" style="font-size: 48px; color: var(--border-dark); margin-bottom: 16px;"></i>
+        <h3 style="font-size: 18px; font-weight: 800; text-transform: uppercase;">YOUR BAG IS EMPTY</h3>
+        <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Discover our heavyweight silhouettes and new drops.</p>
+        <button onclick="toggleCartDrawer(false); navigateTo('#shop');" class="btn-dark" style="width: 100%;">EXPLORE COLLECTION</button>
+      </div>
+    `;
+    footer.style.display = 'none';
+    return;
+  }
+
+  footer.style.display = 'block';
+  container.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <img src="${item.image}" alt="${item.name}" class="cart-item-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
+      <div class="cart-item-details">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-meta">Color: ${item.color.name} • Size: ${item.size}</div>
+        <div class="cart-item-bottom">
+          <div class="price-current">${formatBDT(item.price)}</div>
+          <div class="qty-stepper">
+            <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+            <div class="qty-val">${item.quantity}</div>
+            <button class="qty-btn" onclick="updateCartQty('${item.id}', 1)"><i class="fa-solid fa-plus"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  const { subtotal, discount, deliveryFee, total } = getCartTotals();
+  footer.innerHTML = `
+    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--text-sub);">
+      <span>Subtotal</span>
+      <span>${formatBDT(subtotal)}</span>
+    </div>
+    ${discount > 0 ? `
+      <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--success);">
+        <span>Discount (${window.AURA_STATE.appliedCoupon.code})</span>
+        <span>-${formatBDT(discount)}</span>
+      </div>
+    ` : ''}
+    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; color: var(--text-sub);">
+      <span>Delivery</span>
+      <span>${deliveryFee === 0 ? '<strong style="color: var(--success)">FREE</strong>' : formatBDT(deliveryFee)}</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-bottom: 18px; border-top: 1px solid var(--border); padding-top: 12px;">
+      <span>Total</span>
+      <span>${formatBDT(total)}</span>
+    </div>
+    <button onclick="toggleCartDrawer(false); navigateTo('#checkout');" class="btn-dark" style="width: 100%; margin-bottom: 8px;">CHECKOUT NOW</button>
+    <button onclick="toggleCartDrawer(false); navigateTo('#cart');" class="btn-luxury-outline" style="width: 100%; border-color: var(--border); color: var(--text-main);">VIEW BAG DETAILS</button>
+  `;
+}
+
+// -------------------------------------------------------------
+// VIEWS RENDERING
+// -------------------------------------------------------------
+
+// 1. HOME VIEW
+function renderHomeView(app) {
+  const publishedProducts = window.AURA_STATE.products.filter(p => p.published !== false);
+  const featured = publishedProducts.filter(p => p.isFeatured || p.isNew).slice(0, 4);
+  const drops = publishedProducts.filter(p => p.isDrop).slice(0, 4);
+
+  app.innerHTML = `
+    <!-- Hero Banner -->
+    <div class="container">
+      <section class="hero-banner">
+        <img src="/assets/img_hero_fashion.jpg" alt="AURA Hero" class="hero-bg-img" onerror="this.style.opacity='0.2'">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-pill">
+            <span class="dot"></span>
+            <span>DROP 04 : MONOLITH IS LIVE</span>
+          </div>
+          <h1 class="hero-title">GIVES YOU<br>DIFFERENT VIBE</h1>
+          <p class="hero-subtitle">Architectural cuts, heavyweight 280 GSM custom French terry, and relaxed luxury silhouettes engineered in Dhaka for global presence.</p>
+          <div class="hero-actions">
+            <button onclick="navigateTo('#shop')" class="btn-luxury">
+              <span>EXPLORE COLLECTION</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button onclick="navigateTo('#lookbook')" class="btn-luxury-outline">
+              <span>VIEW LOOKBOOK</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Category Quick Chips -->
+      <div class="category-bar">
+        ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(cat => `
+          <div class="cat-chip ${activeCategory === cat ? 'active' : ''}" onclick="filterCategory('${cat}')">
+            ${cat === 'All' ? '<i class="fa-solid fa-border-all"></i>' : ''}
+            <span>${cat}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Featured New Arrivals -->
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">SIGNATURE PIECES</h2>
+          <div class="section-subtitle">Heavyweight essentials designed to stand the test of time</div>
+        </div>
+        <a href="#shop" class="section-link">VIEW ALL (${publishedProducts.length}) <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+
+      <div class="product-grid">
+        ${featured.map(renderProductCardHtml).join('')}
+      </div>
+
+      <!-- Flash Sale / Drop Capsule -->
+      <section class="capsule-card">
+        <div>
+          <div class="capsule-badge"><i class="fa-solid fa-bolt"></i> LIMITED TIME CAPSULE</div>
+          <h2 class="capsule-title">MIDNIGHT SHADOW DROP</h2>
+          <p class="capsule-desc">Our limited-run 450 GSM luxury French Terry hoodies and cargo silhouettes. Use code <strong style="color:#fff">AURANEW</strong> for 15% off.</p>
+          <div class="countdown-box">
+            <div class="countdown-unit"><div class="countdown-num" id="cd-hours">07</div><div class="countdown-lbl">Hours</div></div>
+            <div class="countdown-unit"><div class="countdown-num" id="cd-mins">48</div><div class="countdown-lbl">Mins</div></div>
+            <div class="countdown-unit"><div class="countdown-num" id="cd-secs">20</div><div class="countdown-lbl">Secs</div></div>
+          </div>
+          <button onclick="navigateTo('#shop')" class="btn-luxury">CLAIM YOUR PIECE <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div>
+          <img src="/assets/img_lookbook_urban.jpg" alt="Capsule Drop" style="border-radius: var(--radius-md); max-height: 380px; width:100%; object-fit: cover;">
+        </div>
+      </section>
+
+      <!-- Curated Lookbook Grid -->
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">CURRENT DROPS & CAPSULES</h2>
+          <div class="section-subtitle">Exclusive limited-edition street essentials</div>
+        </div>
+        <a href="#shop" class="section-link">SHOP DROPS <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+
+      <div class="product-grid">
+        ${drops.map(renderProductCardHtml).join('')}
+      </div>
+
+      <!-- Journal Teaser -->
+      <section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; margin: 48px 0;">
+        <div style="max-width: 680px;">
+          <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px;">AURA JOURNAL • ISSUE 04</div>
+          <h3 style="font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 12px;">WHY 280 GSM IS THE GOLDEN RATIO FOR HEAVYWEIGHT STREETWEAR</h3>
+          <p style="font-size: 14px; color: var(--text-sub); line-height: 1.6; margin-bottom: 20px;">We spent seven months experimenting with yarn twist rates and fabric densities in Dhaka mills before settling on our signature 280 GSM French jersey. It drapes with structural integrity that never clings.</p>
+          <a href="#journal" class="btn-dark" style="display: inline-flex;">READ FULL ARTICLE <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i></a>
+        </div>
+      </section>
+    </div>
+  `;
+
+  // Start live countdown ticker
+  startCountdownTimer();
+}
+
+// 2. SHOP VIEW
+function renderShopView(app) {
+  let products = window.AURA_STATE.products.filter(p => p.published !== false);
+
+  if (activeCategory !== 'All') {
+    products = products.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
+  }
+
+  if (activeStyle !== 'All') {
+    products = products.filter(p => p.style && p.style.toLowerCase() === activeStyle.toLowerCase());
+  }
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    products = products.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || (p.tags && p.tags.some(t => t.toLowerCase().includes(q))));
+  }
+
+  // Sorting
+  if (sortBy === 'price-low') {
+    products.sort((a, b) => a.price - b.price);
+  } else if (sortBy === 'price-high') {
+    products.sort((a, b) => b.price - a.price);
+  } else if (sortBy === 'rating') {
+    products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+
+  app.innerHTML = `
+    <div class="container" style="padding-top: 24px;">
+      <!-- Shop Header & Filters -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 32px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h1 style="font-size: 26px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">AURA CATALOGUE</h1>
+            <div style="font-size: 13px; color: var(--text-sub);">Showing ${products.length} products</div>
+          </div>
+          <!-- Search Box -->
+          <div style="display: flex; align-items: center; background: var(--surface-sub); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; min-width: 280px;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--text-sub); margin-right: 10px;"></i>
+            <input type="text" id="shop-search-input" value="${searchQuery}" placeholder="Search oversized tee, cargo, hoodie..." style="border: none; background: transparent; outline: none; font-size: 13px; width: 100%;" oninput="handleSearch(this.value)">
+            ${searchQuery ? `<button onclick="handleSearch('')" style="color: var(--text-sub); font-size: 12px;"><i class="fa-solid fa-xmark"></i></button>` : ''}
+          </div>
+        </div>
+
+        <!-- Filter Rows -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--text-sub); margin-right: 6px;">Category:</span>
+          ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(c => `
+            <button class="cat-chip ${activeCategory === c ? 'active' : ''}" style="padding: 6px 14px; font-size: 12px;" onclick="filterCategory('${c}')">${c}</button>
+          `).join('')}
+
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--text-sub);">Sort:</span>
+            <select onchange="handleSort(this.value)" style="padding: 8px 12px; background: var(--surface-sub); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-weight: 700; outline: none;">
+              <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Featured Drops</option>
+              <option value="price-low" ${sortBy === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
+              <option value="price-high" ${sortBy === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
+              <option value="rating" ${sortBy === 'rating' ? 'selected' : ''}>Customer Rating</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Grid -->
+      ${products.length > 0 ? `
+        <div class="product-grid">
+          ${products.map(renderProductCardHtml).join('')}
+        </div>
+      ` : `
+        <div style="text-align: center; padding: 80px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <i class="fa-solid fa-magnifying-glass" style="font-size: 40px; color: var(--text-muted); margin-bottom: 16px;"></i>
+          <h3 style="font-size: 20px; font-weight: 800;">NO MATCHING SILHOUETTES FOUND</h3>
+          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Try searching for "tee", "cargo", or clearing your filters.</p>
+          <button onclick="filterCategory('All'); handleSearch('');" class="btn-dark">RESET ALL FILTERS</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// 3. PRODUCT DETAILS VIEW
+function renderProductDetailView(app, productId) {
+  const product = window.AURA_STATE.products.find(p => p.id === productId);
+  if (!product) {
+    app.innerHTML = `
+      <div class="container" style="text-align: center; padding: 100px 20px;">
+        <h2>Product Not Found</h2>
+        <button onclick="navigateTo('#shop')" class="btn-dark" style="margin-top: 16px;">Return to Shop</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Set default selection
+  if (!selectedColor && product.colors && product.colors.length) selectedColor = product.colors[0];
+  if (!selectedSize && product.sizes && product.sizes.length) selectedSize = product.sizes[0];
+  
+  const currentStock = (product.stockPerSize && selectedSize) ? (product.stockPerSize[selectedSize] || 0) : 10;
+  const isOutOfStock = currentStock === 0;
+
+  app.innerHTML = `
+    <div class="container" style="padding-top: 32px;">
+      <!-- Breadcrumb -->
+      <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.06em;">
+        <a href="#home">Home</a> / <a href="#shop">Shop</a> / <a href="#shop" onclick="filterCategory('${product.category}')">${product.category}</a> / <strong style="color: var(--text-main);">${product.name}</strong>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-bottom: 64px;" class="product-detail-layout">
+        <!-- Gallery -->
+        <div>
+          <div style="border-radius: var(--radius-md); overflow: hidden; background: #18181b; aspect-ratio: 4/5; border: 1px solid var(--border); margin-bottom: 16px;">
+            <img id="main-product-img" src="${product.image}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <img src="${product.image}" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 2px solid var(--primary); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
+            <img src="/assets/img_complete_look.jpg" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
+            <img src="/assets/img_lookbook_urban.jpg" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
+          </div>
+        </div>
+
+        <!-- Information & Purchasing -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span class="badge-tag" style="position: static;">${product.badge || 'AURA DROP'}</span>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;">
+              <i class="fa-solid fa-star" style="color: var(--gold);"></i>
+              <span>${product.rating || 4.9}</span>
+              <span style="color: var(--text-sub);">(${product.reviewCount || 42} reviews)</span>
+            </div>
+          </div>
+
+          <h1 style="font-size: 34px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; line-height: 1.1;">${product.name}</h1>
+          <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 20px;">${product.tagline}</div>
+
+          <!-- Price Display -->
+          <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 28px; font-weight: 900;">${formatBDT(product.price)}</div>
+            ${product.originalPrice ? `<div style="font-size: 18px; color: var(--text-muted); text-decoration: line-through;">${formatBDT(product.originalPrice)}</div>` : ''}
+            <span style="background: var(--success); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px;">IN STOCK</span>
+          </div>
+
+          <!-- Color Selector -->
+          ${product.colors && product.colors.length ? `
+            <div style="margin-bottom: 20px;">
+              <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">
+                COLOR: <span id="color-label" style="color: var(--text-sub);">${selectedColor ? selectedColor.name : ''}</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                ${product.colors.map(c => `
+                  <div onclick="selectColor('${product.id}', '${c.name}', '${c.hex}')" style="width: 32px; height: 32px; border-radius: 50%; background: ${c.hex}; border: 2px solid ${selectedColor && selectedColor.name === c.name ? 'var(--primary)' : 'var(--border)'}; cursor: pointer; box-shadow: 0 0 0 2px ${selectedColor && selectedColor.name === c.name ? '#fff' : 'transparent'};" title="${c.name}"></div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Size Selector with Real Stock Indicator -->
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-size: 12px; font-weight: 800; text-transform: uppercase;">
+                SIZE: <span id="size-label" style="color: var(--text-sub);">${selectedSize}</span>
+              </div>
+              <div id="stock-feedback" style="font-size: 12px; font-weight: 700; color: ${isOutOfStock ? 'var(--danger)' : currentStock < 6 ? '#f59e0b' : 'var(--success)'};">
+                ${isOutOfStock ? 'OUT OF STOCK' : currentStock < 6 ? `Only ${currentStock} pieces left` : `${currentStock} pieces available`}
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              ${(product.sizes || ['S', 'M', 'L', 'XL', 'XXL']).map(s => {
+                const sStock = (product.stockPerSize && product.stockPerSize[s] !== undefined) ? product.stockPerSize[s] : 10;
+                const isSizeOut = sStock === 0;
+                return `
+                  <button onclick="selectSize('${product.id}', '${s}')" class="cat-chip ${selectedSize === s ? 'active' : ''}" style="min-width: 48px; justify-content: center; ${isSizeOut ? 'opacity: 0.4; text-decoration: line-through;' : ''}">
+                    ${s}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 12px; margin-bottom: 32px;">
+            <button onclick="handleAddToCart('${product.id}')" class="btn-dark" style="flex: 2; padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
+              <i class="fa-solid fa-bag-shopping"></i>
+              <span>${isOutOfStock ? 'OUT OF STOCK' : 'ADD TO BAG'}</span>
+            </button>
+            <button onclick="handleBuyNow('${product.id}')" class="btn-luxury-outline" style="flex: 1; border-color: var(--primary); color: var(--primary); padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
+              BUY NOW
+            </button>
+            <button onclick="toggleWishlist('${product.id}')" class="wishlist-toggle" style="position: static; width: 54px; height: 54px; border: 1px solid var(--border);">
+              <i class="fa-${window.AURA_STATE.wishlist.includes(product.id) ? 'solid' : 'regular'} fa-heart" style="${window.AURA_STATE.wishlist.includes(product.id) ? 'color: var(--danger)' : ''}"></i>
+            </button>
+          </div>
+
+          <!-- Silhouette Specs Accordion -->
+          <div style="border-top: 1px solid var(--border); padding-top: 24px;">
+            <h4 style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">CRAFT & SPECIFICATIONS</h4>
+            <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 16px;">${product.description}</p>
+            <ul style="list-style: none; font-size: 12px; color: var(--text-sub); display: flex; flex-direction: column; gap: 8px;">
+              <li><strong>Fabric:</strong> ${product.fabric || '100% French Terry Cotton'}</li>
+              <li><strong>Fit:</strong> ${product.fit || 'Boxy Oversized drop shoulder'}</li>
+              <li><strong>Care:</strong> ${product.care || 'Cold wash inside out'}</li>
+              <li><strong>Delivery:</strong> Express Courier via Pathao (48h Dhaka / 72h Nationwide)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 4. CART FULL VIEW
+function renderCartView(app) {
+  const cart = window.AURA_STATE.cart;
+  const { subtotal, discount, deliveryFee, total } = getCartTotals();
+
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 64px;">
+      <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 24px;">YOUR BAG (${cart.reduce((s, i) => s + i.quantity, 0)} ITEMS)</h1>
+      
+      ${cart.length > 0 ? `
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;" class="cart-layout">
+          <div>
+            ${cart.map(item => `
+              <div style="display: flex; gap: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; align-items: center;">
+                <img src="${item.image}" alt="${item.name}" style="width: 90px; height: 110px; object-fit: cover; border-radius: 6px; background: #18181b;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+                <div style="flex: 1;">
+                  <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 4px;">${item.name}</h3>
+                  <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">Color: ${item.color.name} • Size: ${item.size}</div>
+                  <div style="font-size: 17px; font-weight: 900;">${formatBDT(item.price * item.quantity)}</div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 16px;">
+                  <button onclick="updateCartQty('${item.id}', -${item.quantity})" style="color: var(--text-sub); font-size: 13px;"><i class="fa-solid fa-trash"></i></button>
+                  <div class="qty-stepper">
+                    <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+                    <div class="qty-val">${item.quantity}</div>
+                    <button class="qty-btn" onclick="updateCartQty('${item.id}', 1)"><i class="fa-solid fa-plus"></i></button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Order Summary -->
+          <div>
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+              <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;">ORDER SUMMARY</h3>
+              
+              <!-- Coupon Box -->
+              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <input type="text" id="coupon-code-input" placeholder="Coupon (e.g. AURA10)" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; text-transform: uppercase;">
+                <button onclick="applyCouponCode()" class="btn-dark" style="padding: 10px 16px; font-size: 12px;">APPLY</button>
+              </div>
+              ${window.AURA_STATE.appliedCoupon ? `
+                <div style="font-size: 12px; color: var(--success); font-weight: 700; margin-bottom: 16px;">
+                  ✓ Coupon '${window.AURA_STATE.appliedCoupon.code}' applied!
+                </div>
+              ` : ''}
+
+              <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--text-sub);">
+                <span>Subtotal</span>
+                <span>${formatBDT(subtotal)}</span>
+              </div>
+              ${discount > 0 ? `
+                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--success);">
+                  <span>Discount</span>
+                  <span>-${formatBDT(discount)}</span>
+                </div>
+              ` : ''}
+              <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 16px; color: var(--text-sub);">
+                <span>Pathao Courier Delivery</span>
+                <span>${deliveryFee === 0 ? '<strong style="color: var(--success)">FREE</strong>' : formatBDT(deliveryFee)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-bottom: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+                <span>Total</span>
+                <span>${formatBDT(total)}</span>
+              </div>
+              <button onclick="navigateTo('#checkout')" class="btn-dark" style="width: 100%; padding: 16px;">PROCEED TO CHECKOUT</button>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div style="text-align: center; padding: 80px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <i class="fa-solid fa-bag-shopping" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+          <h2 style="font-size: 22px; font-weight: 800;">YOUR BAG IS EMPTY</h2>
+          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Explore our signature oversized tees and architectural silhouettes.</p>
+          <button onclick="navigateTo('#shop')" class="btn-dark">START SHOPPING</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// 5. CHECKOUT VIEW
+function renderCheckoutView(app) {
+  const cart = window.AURA_STATE.cart;
+  if (cart.length === 0) {
+    navigateTo('#cart');
+    return;
+  }
+  const { subtotal, discount, deliveryFee, total } = getCartTotals();
+
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 80px;">
+      <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 24px;">SECURE CHECKOUT</h1>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;" class="checkout-layout">
+        <!-- Shipping & Payment Form -->
+        <div>
+          <!-- Step 1: Contact & Address -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;">1</span>
+              <span>DELIVERY ADDRESS</span>
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Full Name *</label>
+                <input type="text" id="chk-name" value="${window.AURA_STATE.user ? (window.AURA_STATE.user.displayName || '') : 'Tanvir Ahmed'}" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Phone Number *</label>
+                <input type="tel" id="chk-phone" value="+880 1712 345678" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+              </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Street Address / Apartment *</label>
+              <input type="text" id="chk-address" value="House 42, Road 11, Banani" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">City / Region *</label>
+                <select id="chk-city" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                  <option value="Dhaka">Dhaka (Inside City)</option>
+                  <option value="Chittagong">Chittagong</option>
+                  <option value="Sylhet">Sylhet</option>
+                  <option value="Rajshahi">Rajshahi</option>
+                  <option value="Other">Other Nationwide</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Courier Service</label>
+                <select id="chk-courier" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                  <option value="Pathao Express">Pathao Express (Recommended)</option>
+                  <option value="RedX">RedX Logistics</option>
+                  <option value="Steadfast">Steadfast Courier</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Payment Method -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+            <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;">2</span>
+              <span>PAYMENT METHOD</span>
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="payment-method" value="bKash Online Payment" checked>
+                <div>
+                  <div style="font-size: 13px; font-weight: 800;">bKash Mobile Banking</div>
+                  <div style="font-size: 11px; color: var(--text-sub);">Instant automated confirmation via bKash payment gateway</div>
+                </div>
+              </label>
+              <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="payment-method" value="Cash on Delivery">
+                <div>
+                  <div style="font-size: 13px; font-weight: 800;">Cash on Delivery (COD)</div>
+                  <div style="font-size: 11px; color: var(--text-sub);">Pay upon delivery after inspecting parcel with Pathao rider</div>
+                </div>
+              </label>
+            </div>
+            <button onclick="handlePlaceOrder()" class="btn-dark" style="width: 100%; padding: 18px; font-size: 14px;">
+              <span>PLACE ORDER & CONFIRM</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Column -->
+        <div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+            <h3 style="font-size: 15px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;">ITEMS IN BAG</h3>
+            <div style="max-height: 240px; overflow-y: auto; margin-bottom: 16px;">
+              ${cart.map(item => `
+                <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center;">
+                  <img src="${item.image}" alt="${item.name}" style="width: 48px; height: 60px; object-fit: cover; border-radius: 4px;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+                  <div style="flex: 1;">
+                    <div style="font-size: 13px; font-weight: 800;">${item.name}</div>
+                    <div style="font-size: 11px; color: var(--text-sub);">${item.color.name} • ${item.size} × ${item.quantity}</div>
+                  </div>
+                  <div style="font-size: 13px; font-weight: 800;">${formatBDT(item.price * item.quantity)}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-sub);">
+              <span>Subtotal</span>
+              <span>${formatBDT(subtotal)}</span>
+            </div>
+            ${discount > 0 ? `
+              <div style="font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--success);">
+                <span>Discount</span>
+                <span>-${formatBDT(discount)}</span>
+              </div>
+            ` : ''}
+            <div style="font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 12px; color: var(--text-sub);">
+              <span>Delivery</span>
+              <span>${deliveryFee === 0 ? '<strong style="color: var(--success)">FREE</strong>' : formatBDT(deliveryFee)}</span>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 16px; font-weight: 900; display: flex; justify-content: space-between;">
+              <span>Total Payable</span>
+              <span>${formatBDT(total)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 6. ACCOUNT & ORDERS VIEW
+function renderAccountView(app, subTab) {
+  const user = window.AURA_STATE.user;
+  const orders = window.AURA_STATE.orders;
+
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 80px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase;">AURA MEMBER PROFILE</h1>
+        ${user && !user.isAnonymous ? `
+          <button onclick="handleLogout()" class="cat-chip" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+        ` : `
+          <button onclick="navigateTo('#login')" class="btn-dark" style="padding: 8px 16px; font-size: 12px;">SIGN IN / REGISTER</button>
+        `}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 3fr; gap: 32px;" class="account-layout">
+        <!-- Sidebar -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;">
+              ${user ? (user.email ? user.email.slice(0, 2).toUpperCase() : 'AU') : 'AU'}
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 800;">${user ? (user.displayName || 'AURA Member') : 'AURA Member'}</div>
+              <div style="font-size: 12px; color: var(--text-sub);">${user ? (user.email || 'guest@aura.fashion') : 'Guest Session'}</div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <button onclick="navigateTo('#account/orders')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${subTab === 'orders' || !subTab ? 'background: var(--primary); color: #fff;' : ''}">
+              <i class="fa-solid fa-box-open"></i> My Orders (${orders.length})
+            </button>
+            <button onclick="navigateTo('#account/addresses')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${subTab === 'addresses' ? 'background: var(--primary); color: #fff;' : ''}">
+              <i class="fa-solid fa-location-dot"></i> Saved Addresses
+            </button>
+            <button onclick="navigateTo('#wishlist')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start;">
+              <i class="fa-solid fa-heart"></i> My Wishlist
+            </button>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div>
+          ${subTab === 'addresses' ? `
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+              <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">SAVED DELIVERY ADDRESSES</h3>
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <strong>Default Residence</strong>
+                  <span style="font-size: 11px; background: var(--surface-sub); padding: 2px 8px; border-radius: 4px;">Primary</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-sub);">House 42, Road 11, Banani, Dhaka-1213<br>Contact: +880 1712 345678</p>
+              </div>
+            </div>
+          ` : `
+            <!-- Orders List -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+              <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">ORDER HISTORY & LIVE TRACKING</h3>
+              ${orders.length > 0 ? `
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  ${orders.map(order => `
+                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                        <div>
+                          <span style="font-size: 14px; font-weight: 900;">ORDER #${order.id}</span>
+                          <span style="font-size: 12px; color: var(--text-sub); margin-left: 8px;">${order.courier || 'Pathao Express'} • ${order.trackingId || 'PTH-99214'}</span>
+                        </div>
+                        <span class="badge-tag" style="position: static; background: ${order.status === 'Delivered' ? 'var(--success)' : order.status === 'Cancelled' ? 'var(--danger)' : 'var(--primary)'};">
+                          ${order.status || 'Processing'}
+                        </span>
+                      </div>
+                      
+                      <!-- Timeline Progress Bar -->
+                      <div style="display: flex; justify-content: space-between; align-items: center; position: relative; margin: 20px 0 24px;">
+                        <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: var(--border); z-index: 1;"></div>
+                        ${['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'].map((st, i) => {
+                          const statusOrder = ['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'];
+                          const currentIdx = statusOrder.indexOf(order.status || 'Confirmed');
+                          const reached = currentIdx >= i;
+                          return `
+                            <div style="position: relative; z-index: 2; text-align: center;">
+                              <div style="width: 24px; height: 24px; border-radius: 50%; background: ${reached ? 'var(--primary)' : 'var(--surface-sub)'}; color: ${reached ? '#fff' : 'var(--text-sub)'}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; margin: 0 auto 4px; border: 2px solid #fff;">
+                                ${reached ? '✓' : (i + 1)}
+                              </div>
+                              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${reached ? 'var(--text-main)' : 'var(--text-muted)'};">${st}</div>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+
+                      <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="font-size: 13px; color: var(--text-sub);">
+                          Delivery to: ${order.customerName || 'Customer'} (${order.deliveryAddress || 'Dhaka'})
+                        </div>
+                        <div style="font-size: 17px; font-weight: 900;">
+                          ${formatBDT(order.total)}
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : `
+                <div style="text-align: center; padding: 40px 20px;">
+                  <i class="fa-solid fa-box-open" style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                  <p style="font-size: 14px; color: var(--text-sub);">You haven't placed any orders yet.</p>
+                  <button onclick="navigateTo('#shop')" class="btn-dark" style="margin-top: 16px;">EXPLORE DROPS</button>
+                </div>
+              `}
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 7. LOGIN & REGISTER VIEW
+function renderLoginView(app) {
+  app.innerHTML = `
+    <div class="container" style="max-width: 480px; padding: 60px 24px 100px;">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 36px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h2 style="font-size: 24px; font-weight: 900; letter-spacing: -0.03em;">AURA ACCOUNT</h2>
+          <p style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">Sign in or create account to track orders and save drops.</p>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+          <button id="tab-login" onclick="toggleAuthTab('login')" class="cat-chip active" style="flex: 1; justify-content: center;">SIGN IN</button>
+          <button id="tab-register" onclick="toggleAuthTab('register')" class="cat-chip" style="flex: 1; justify-content: center;">REGISTER</button>
+        </div>
+
+        <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+          <div id="register-fields" style="display: none;">
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Full Name</label>
+              <input type="text" id="auth-name" placeholder="Tanvir Ahmed" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Phone Number</label>
+              <input type="tel" id="auth-phone" placeholder="+880 1712 345678" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Email Address</label>
+            <input type="email" id="auth-email" placeholder="member@aura.fashion" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+          </div>
+
+          <button type="submit" id="auth-submit-btn" class="btn-dark" style="width: 100%; padding: 14px;">SIGN IN</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+// 8. WISHLIST VIEW
+function renderWishlistView(app) {
+  const wishlistIds = window.AURA_STATE.wishlist;
+  const products = window.AURA_STATE.products.filter(p => wishlistIds.includes(p.id));
+
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 80px;">
+      <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 24px;">YOUR SAVED WISHLIST (${products.length})</h1>
+      ${products.length > 0 ? `
+        <div class="product-grid">
+          ${products.map(renderProductCardHtml).join('')}
+        </div>
+      ` : `
+        <div style="text-align: center; padding: 80px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <i class="fa-regular fa-heart" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+          <h2 style="font-size: 22px; font-weight: 800;">NO ITEMS SAVED YET</h2>
+          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Tap the heart icon on any silhouette to bookmark it for later.</p>
+          <button onclick="navigateTo('#shop')" class="btn-dark">EXPLORE PRODUCTS</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// 9. LOOKBOOK VIEW
+function renderLookbookView(app) {
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 80px;">
+      <div style="text-align: center; max-width: 640px; margin: 0 auto 48px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: var(--gold); text-transform: uppercase;">AURA LOOKBOOK • VOL 01</span>
+        <h1 style="font-size: 38px; font-weight: 900; letter-spacing: -0.03em; margin: 8px 0 12px;">URBAN / AFTER DARK</h1>
+        <p style="font-size: 14px; color: var(--text-sub); line-height: 1.6;">"Clothes aren't just fabric; they represent the atmosphere you carry into every space."</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 48px;">
+        <img src="/assets/img_complete_look.jpg" alt="Look 1" style="width: 100%; border-radius: var(--radius-md); object-fit: cover; max-height: 600px;">
+        <img src="/assets/img_lookbook_urban.jpg" alt="Look 2" style="width: 100%; border-radius: var(--radius-md); object-fit: cover; max-height: 600px;">
+      </div>
+
+      <div style="text-align: center;">
+        <button onclick="navigateTo('#shop')" class="btn-dark">SHOP THE COMPLETE LOOKS</button>
+      </div>
+    </div>
+  `;
+}
+
+// 10. JOURNAL VIEW
+function renderJournalView(app) {
+  app.innerHTML = `
+    <div class="container" style="padding: 32px 24px 80px; max-width: 860px;">
+      <div style="text-align: center; margin-bottom: 48px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: var(--gold); text-transform: uppercase;">AURA EDITORIAL JOURNAL</span>
+        <h1 style="font-size: 36px; font-weight: 900; letter-spacing: -0.03em; margin: 8px 0;">CRAFT, TEXTILE & STREETWEAR</h1>
+      </div>
+
+      <article style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 36px; margin-bottom: 32px;">
+        <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-bottom: 6px;">TEXTILE SCIENCE • OCT 24, 2026</div>
+        <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 12px;">WHY 280 GSM IS THE GOLDEN RATIO FOR HEAVYWEIGHT STREETWEAR</h2>
+        <p style="font-size: 14px; color: var(--text-sub); line-height: 1.7; margin-bottom: 16px;">In standard fast fashion, tees run around 140 to 180 GSM. They feel soft on day one, but after two laundry cycles they lose structural drape and the collar ripples. For AURA, we engineered a custom tight-knit 280 GSM combed organic cotton. It hangs with deliberate architectural drape, doesn't cling, and ages with character just like raw denim.</p>
+      </article>
+
+      <article style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 36px;">
+        <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-bottom: 6px;">STYLE GUIDE • NOV 02, 2026</div>
+        <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 12px;">HOW TO STYLE OVERSIZED SILHOUETTES WITHOUT LOOKING DISPROPORTIONATE</h2>
+        <p style="font-size: 14px; color: var(--text-sub); line-height: 1.7;">The key to wearing oversized silhouettes gracefully is tension and contrast. If your top is wide and boxy with dropped shoulders, pair it with structured pants that cinch at the ankle, creating a clean break right above your footwear. Add a single focused accessory like our matte steel pendant to draw the eye vertically.</p>
+      </article>
+    </div>
+  `;
+}
+
+// -------------------------------------------------------------
+// HELPER COMPONENT RENDERERS
+// -------------------------------------------------------------
+
+function renderProductCardHtml(p) {
+  const isWish = window.AURA_STATE.wishlist.includes(p.id);
+  const totalStock = p.stockPerSize ? Object.values(p.stockPerSize).reduce((a, b) => a + b, 0) : 10;
+  const isOut = totalStock === 0;
+
+  return `
+    <div class="product-card" onclick="navigateTo('#product/${p.id}')" style="cursor: pointer;">
+      <div class="product-img-box">
+        <img src="${p.image}" alt="${p.name}" class="product-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
+        ${p.badge ? `<span class="badge-tag ${p.isDrop ? 'drop' : ''}">${p.badge}</span>` : ''}
+        <button class="wishlist-toggle ${isWish ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">
+          <i class="fa-${isWish ? 'solid' : 'regular'} fa-heart"></i>
+        </button>
+      </div>
+      <div class="product-info">
+        <div class="product-cat">${p.category}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-tagline">${p.tagline}</div>
+        <div class="product-footer">
+          <div class="price-box">
+            <span class="price-current">${formatBDT(p.price)}</span>
+            ${p.originalPrice ? `<span class="price-original">${formatBDT(p.originalPrice)}</span>` : ''}
+          </div>
+          <span class="stock-indicator ${isOut ? 'out-of-stock' : totalStock < 6 ? 'low-stock' : 'in-stock'}">
+            ${isOut ? 'Out of Stock' : totalStock < 6 ? 'Low Stock' : 'In Stock'}
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Countdown Timer Handler
+function startCountdownTimer() {
+  let secondsLeft = 7 * 3600 + 48 * 60 + 19;
+  const hEl = document.getElementById('cd-hours');
+  const mEl = document.getElementById('cd-mins');
+  const sEl = document.getElementById('cd-secs');
+  
+  if (window.timerInterval) clearInterval(window.timerInterval);
+  window.timerInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft < 0) secondsLeft = 24 * 3600;
+    const h = Math.floor(secondsLeft / 3600);
+    const m = Math.floor((secondsLeft % 3600) / 60);
+    const s = secondsLeft % 60;
+    if (hEl) hEl.textContent = String(h).padStart(2, '0');
+    if (mEl) mEl.textContent = String(m).padStart(2, '0');
+    if (sEl) sEl.textContent = String(s).padStart(2, '0');
+  }, 1000);
+}
+
+// -------------------------------------------------------------
+// EVENT HANDLERS
+// -------------------------------------------------------------
+
+function filterCategory(cat) {
+  activeCategory = cat;
+  if (getRoute().view !== 'shop') {
+    navigateTo('#shop');
+  } else {
+    renderCurrentView();
+  }
+}
+
+function handleSearch(q) {
+  searchQuery = q;
+  renderCurrentView();
+}
+
+function handleSort(val) {
+  sortBy = val;
+  renderCurrentView();
+}
+
+function selectColor(productId, colorName, hex) {
+  selectedColor = { name: colorName, hex: hex };
+  const lbl = document.getElementById('color-label');
+  if (lbl) lbl.textContent = colorName;
+}
+
+function selectSize(productId, size) {
+  selectedSize = size;
+  const product = window.AURA_STATE.products.find(p => p.id === productId);
+  if (!product) return;
+  const stock = (product.stockPerSize && product.stockPerSize[size] !== undefined) ? product.stockPerSize[size] : 10;
+  
+  const lbl = document.getElementById('size-label');
+  if (lbl) lbl.textContent = size;
+  
+  const fb = document.getElementById('stock-feedback');
+  if (fb) {
+    if (stock === 0) {
+      fb.textContent = 'OUT OF STOCK';
+      fb.style.color = 'var(--danger)';
+    } else if (stock < 6) {
+      fb.textContent = `Only ${stock} pieces left`;
+      fb.style.color = '#f59e0b';
+    } else {
+      fb.textContent = `${stock} pieces available`;
+      fb.style.color = 'var(--success)';
+    }
+  }
+
+  // Update button state
+  document.querySelectorAll('.cat-chip').forEach(btn => {
+    if (btn.textContent.trim() === size) {
+      btn.classList.add('active');
+    } else if (['S', 'M', 'L', 'XL', 'XXL', 'One Size'].includes(btn.textContent.trim())) {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function handleAddToCart(productId) {
+  const product = window.AURA_STATE.products.find(p => p.id === productId);
+  if (!product) return;
+  const color = selectedColor || (product.colors && product.colors[0]) || { name: 'Standard', hex: '#111' };
+  const size = selectedSize || (product.sizes && product.sizes[0]) || 'L';
+  addToCart(product, color, size, selectedQty);
+}
+
+function handleBuyNow(productId) {
+  const ok = handleAddToCart(productId);
+  if (ok) {
+    toggleCartDrawer(false);
+    navigateTo('#checkout');
+  }
+}
+
+function applyCouponCode() {
+  const input = document.getElementById('coupon-code-input');
+  if (!input) return;
+  const code = input.value.trim().toUpperCase();
+  const coupon = window.AURA_STATE.coupons.find(c => c.code === code);
+  
+  if (!coupon) {
+    showToast("Invalid coupon code");
+    return;
+  }
+  
+  const totals = getCartTotals();
+  if (totals.subtotal < coupon.minSpend) {
+    showToast(`Minimum order of ৳${coupon.minSpend} required for this coupon`);
+    return;
+  }
+
+  window.AURA_STATE.appliedCoupon = coupon;
+  showToast(`Coupon '${code}' applied successfully!`);
+  renderCurrentView();
+}
+
+async function handlePlaceOrder() {
+  const name = document.getElementById('chk-name').value.trim();
+  const phone = document.getElementById('chk-phone').value.trim();
+  const address = document.getElementById('chk-address').value.trim();
+  const city = document.getElementById('chk-city').value;
+  const courier = document.getElementById('chk-courier').value;
+  const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+
+  if (!name || !phone || !address) {
+    showToast("Please complete all shipping details");
+    return;
+  }
+
+  const { subtotal, discount, deliveryFee, total } = getCartTotals();
+  const orderId = 'AURA-' + Math.floor(1000 + Math.random() * 9000);
+  const trackingId = 'PTH-DH-' + Math.floor(100000 + Math.random() * 900000);
+
+  const newOrder = {
+    id: orderId,
+    userId: window.AURA_STATE.user ? window.AURA_STATE.user.uid : 'guest',
+    customerName: name,
+    customerPhone: phone,
+    deliveryAddress: `${address}, ${city}`,
+    courier: courier,
+    trackingId: trackingId,
+    paymentMethod: paymentMethod,
+    items: [...window.AURA_STATE.cart],
+    subtotal: subtotal,
+    discount: discount,
+    deliveryFee: deliveryFee,
+    total: total,
+    status: 'Confirmed',
+    createdAt: Date.now()
+  };
+
+  // Clear Cart
+  window.AURA_STATE.cart = [];
+  window.AURA_STATE.appliedCoupon = null;
+  localStorage.setItem('aura_cart', '[]');
+  updateCounters();
+
+  // Save to Firebase
+  await createFirebaseOrder(newOrder);
+
+  showToast(`Order #${orderId} Confirmed!`);
+  navigateTo('#account/orders');
+}
+
+// Auth Handlers
+function toggleAuthTab(tab) {
+  const regFields = document.getElementById('register-fields');
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const btn = document.getElementById('auth-submit-btn');
+
+  if (tab === 'register') {
+    regFields.style.display = 'block';
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+    btn.textContent = 'CREATE AURA ACCOUNT';
+  } else {
+    regFields.style.display = 'none';
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+    btn.textContent = 'SIGN IN';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const isRegister = document.getElementById('tab-register').classList.contains('active');
+  const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : '';
+
+  if (!auth) {
+    showToast("Firebase Auth unavailable, operating in demo session");
+    navigateTo('#account');
+    return;
+  }
+
+  try {
+    if (isRegister) {
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      if (name && cred.user) {
+        await cred.user.updateProfile({ displayName: name });
+      }
+      showToast("Welcome to AURA!");
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
+      showToast("Signed in successfully");
+    }
+    navigateTo('#account');
+  } catch (err) {
+    showToast(err.message || "Authentication failed");
+  }
+}
+
+async function handleLogout() {
+  if (auth) {
+    await auth.signOut();
+  }
+  window.AURA_STATE.user = null;
+  showToast("Signed out");
+  navigateTo('#home');
+}
+
+// -------------------------------------------------------------
+// ADMIN LIVE SYNC TESTING DRAWER
+// -------------------------------------------------------------
+function toggleAdminDrawer(open) {
+  let drawer = document.getElementById('admin-drawer');
+  let backdrop = document.getElementById('admin-backdrop');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.id = 'admin-drawer';
+    drawer.className = 'drawer-panel';
+    drawer.style.maxWidth = '460px';
+    backdrop = document.createElement('div');
+    backdrop.id = 'admin-backdrop';
+    backdrop.className = 'drawer-backdrop';
+    backdrop.onclick = () => toggleAdminDrawer(false);
+    document.body.appendChild(backdrop);
+    document.body.appendChild(drawer);
+  }
+
+  if (open) {
+    renderAdminDrawer(drawer);
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+  } else {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+}
+
+function renderAdminDrawer(drawer) {
+  const products = window.AURA_STATE.products;
+  const orders = window.AURA_STATE.orders;
+
+  drawer.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-title" style="display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-server" style="color: var(--success)"></i>
+        <span>FIREBASE LIVE SYNC PANEL</span>
+      </div>
+      <button class="drawer-close" onclick="toggleAdminDrawer(false)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; background: var(--surface-sub); padding: 12px; border-radius: 6px;">
+        <strong>Shared Firebase (aura-f4291) Live Tester:</strong><br>
+        Verify tests #1 - #10. Modifying any value writes directly to Firestore and reflects instantly on the user website!
+      </div>
+
+      <!-- Test 1 & 2: Edit Price -->
+      <div style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">TEST 2: CHANGE PRODUCT PRICE (FIRESTORE)</h4>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <select id="adm-price-prod" style="flex: 2; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+            ${products.map(p => `<option value="${p.id}">${p.name} (৳${p.price})</option>`).join('')}
+          </select>
+          <input type="number" id="adm-price-val" placeholder="New Price (BDT)" style="flex: 1; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+        </div>
+        <button onclick="executeAdminPriceChange()" class="btn-dark" style="width: 100%; padding: 8px; font-size: 12px;">UPDATE PRICE LIVE</button>
+      </div>
+
+      <!-- Test 3: Set Variant Stock to 0 -->
+      <div style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">TEST 3: SET VARIANT STOCK TO 0 (OUT OF STOCK)</h4>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <select id="adm-stock-prod" style="flex: 2; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+            ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+          </select>
+          <select id="adm-stock-size" style="flex: 1; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="S">Size S</option>
+            <option value="M">Size M</option>
+            <option value="L">Size L</option>
+            <option value="XL">Size XL</option>
+            <option value="XXL">Size XXL</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="executeAdminStockChange(0)" class="btn-dark" style="flex: 1; padding: 8px; font-size: 12px; background: var(--danger);">SET STOCK = 0</button>
+          <button onclick="executeAdminStockChange(15)" class="btn-luxury-outline" style="flex: 1; padding: 8px; font-size: 12px; border-color: var(--border); color: var(--text-main);">RESTOCK (15)</button>
+        </div>
+      </div>
+
+      <!-- Test 4: Toggle Publish -->
+      <div style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">TEST 4: UNPUBLISH / PUBLISH PRODUCT</h4>
+        <div style="display: flex; gap: 8px;">
+          <select id="adm-pub-prod" style="flex: 2; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+            ${products.map(p => `<option value="${p.id}">${p.name} [${p.published !== false ? 'PUBLISHED' : 'HIDDEN'}]</option>`).join('')}
+          </select>
+          <button onclick="executeAdminPublishToggle()" class="btn-dark" style="flex: 1; padding: 8px; font-size: 12px;">TOGGLE</button>
+        </div>
+      </div>
+
+      <!-- Test 7: Update Order Status -->
+      <div>
+        <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">TEST 7: ADMIN ADVANCES ORDER STATUS</h4>
+        ${orders.length > 0 ? `
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <select id="adm-order-id" style="flex: 1; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+              ${orders.map(o => `<option value="${o.id}">#${o.id} - ${o.status || 'Confirmed'}</option>`).join('')}
+            </select>
+            <select id="adm-order-status" style="flex: 1; padding: 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px;">
+              <option value="Confirmed">Confirmed</option>
+              <option value="Processing">Processing</option>
+              <option value="Packed">Packed</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Out for Delivery">Out for Delivery</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <button onclick="executeAdminOrderStatusChange()" class="btn-dark" style="width: 100%; padding: 8px; font-size: 12px;">UPDATE ORDER STATUS</button>
+        ` : `
+          <p style="font-size: 12px; color: var(--text-sub);">Place an order first to test live status progression.</p>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function executeAdminPriceChange() {
+  const prodId = document.getElementById('adm-price-prod').value;
+  const price = document.getElementById('adm-price-val').value;
+  if (!price) return;
+  adminUpdatePrice(prodId, price);
+  showToast(`Updated price to ${formatBDT(price)}`);
+  renderAdminDrawer(document.getElementById('admin-drawer'));
+}
+
+function executeAdminStockChange(qty) {
+  const prodId = document.getElementById('adm-stock-prod').value;
+  const size = document.getElementById('adm-stock-size').value;
+  adminUpdateStock(prodId, size, qty);
+  showToast(`Updated ${size} stock to ${qty}`);
+  renderAdminDrawer(document.getElementById('admin-drawer'));
+}
+
+function executeAdminPublishToggle() {
+  const prodId = document.getElementById('adm-pub-prod').value;
+  adminTogglePublish(prodId);
+  showToast("Product publication status updated");
+  renderAdminDrawer(document.getElementById('admin-drawer'));
+}
+
+function executeAdminOrderStatusChange() {
+  const orderId = document.getElementById('adm-order-id').value;
+  const status = document.getElementById('adm-order-status').value;
+  adminUpdateOrderStatus(orderId, status);
+  showToast(`Order #${orderId} marked as ${status}`);
+  renderAdminDrawer(document.getElementById('admin-drawer'));
+}
+
+// -------------------------------------------------------------
+// MAIN ROUTING DISPATCHER
+// -------------------------------------------------------------
+function renderCurrentView() {
+  const route = getRoute();
+  const app = document.getElementById('app-main');
+  if (!app) return;
+
+  updateNavLinks(route.view);
+  updateCounters();
+
+  switch (route.view) {
+    case 'home':
+      renderHomeView(app);
+      break;
+    case 'shop':
+    case 'category':
+      renderShopView(app);
+      break;
+    case 'product':
+      renderProductDetailView(app, route.id);
+      break;
+    case 'cart':
+      renderCartView(app);
+      break;
+    case 'wishlist':
+      renderWishlistView(app);
+      break;
+    case 'checkout':
+      renderCheckoutView(app);
+      break;
+    case 'account':
+      renderAccountView(app, route.sub);
+      break;
+    case 'login':
+    case 'register':
+      renderLoginView(app);
+      break;
+    case 'lookbook':
+      renderLookbookView(app);
+      break;
+    case 'journal':
+      renderJournalView(app);
+      break;
+    default:
+      renderHomeView(app);
+  }
+}
+
+// Application Boot
+window.addEventListener('DOMContentLoaded', () => {
+  window.renderCurrentView = renderCurrentView;
+
+  // Initialize Firebase realtime sync
+  initFirebaseListeners(
+    liveProducts => {
+      renderCurrentView();
+    },
+    liveOrders => {
+      renderCurrentView();
+    }
+  );
+
+  // Hash Routing Listener
+  window.addEventListener('hashchange', renderCurrentView);
+
+  // Initial Render
+  renderCurrentView();
+});
+
+</script>
+</body>
+</html>
