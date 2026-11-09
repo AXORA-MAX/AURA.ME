@@ -1,0 +1,16 @@
+{
+  "name": "aura-fashion",
+  "version": "2.0.0",
+  "description": "AURA Luxury Fashion E-Commerce Platform — Supabase Edition",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/production-suite.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

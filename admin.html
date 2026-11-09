@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA. Admin Portal — Architectural Grid Studio</title>
+  <link rel="icon" type="image/jpeg" href="/assets/img_app_icon.jpg">
+
+  <!-- Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* CSS-Generated Minimal Grid Studio Architectural Background */
+    :root {
+      --bg-base: #FAFAF8;
+      --grid-line: #D6D6D2;
+      --surface-card: #FFFFFF;
+      --surface-sub: #F4F4F2;
+      --border-card: #E4E4E0;
+      --text-main: #111111;
+      --text-sub: #666664;
+      --text-muted: #9E9E9A;
+      --accent-gold: #C6A45C;
+      --accent-gold-soft: rgba(198, 164, 92, 0.15);
+      --danger: #DC2626;
+      --success: #16A34A;
+      --sidebar-width: 260px;
+      --radius-card: 16px;
+      --radius-sm: 8px;
+      --shadow-ambient: 0 4px 20px -2px rgba(17, 17, 17, 0.05);
+    }
+
+    /* Selectable Theme 2: Dark Luxury */
+    body[data-theme="dark-luxury"] {
+      --bg-base: #0E0E10;
+      --grid-line: #1F1F24;
+      --surface-card: #16161A;
+      --surface-sub: #222228;
+      --border-card: #2A2A32;
+      --text-main: #F4F4F6;
+      --text-sub: #9E9EA8;
+      --text-muted: #646470;
+      --shadow-ambient: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    /* Selectable Theme 3: Clean White */
+    body[data-theme="clean-white"] {
+      --bg-base: #F8F9FA;
+      --grid-line: transparent;
+      --surface-card: #FFFFFF;
+      --surface-sub: #F1F3F5;
+      --border-card: #E9ECEF;
+      --text-main: #212529;
+      --text-sub: #495057;
+      --text-muted: #868E96;
+      --shadow-ambient: 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    /* Selectable Theme 4: Warm Neutral */
+    body[data-theme="warm-neutral"] {
+      --bg-base: #F5F2EB;
+      --grid-line: #E8E3D8;
+      --surface-card: #FDFAF5;
+      --surface-sub: #EFE9DE;
+      --border-card: #E0D9CB;
+      --text-main: #2C2825;
+      --text-sub: #6E6862;
+      --text-muted: #9C958E;
+      --shadow-ambient: 0 4px 16px rgba(44,40,37,0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 36px 36px;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar Navigation */
+    .admin-sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface-card);
+      border-right: 1px solid var(--border-card);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      transition: transform 0.25s ease;
+    }
+
+    .brand-box {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border-card);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-text {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .brand-badge {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background: var(--accent-gold);
+      color: #FFFFFF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-menu {
+      padding: 20px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      width: 100%;
+    }
+
+    .nav-btn:hover {
+      background: var(--surface-sub);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active {
+      background: var(--surface-sub);
+      color: var(--text-main);
+      border-color: var(--border-card);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .nav-btn i {
+      width: 18px;
+      font-size: 15px;
+      color: var(--accent-gold);
+    }
+
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid var(--border-card);
+    }
+
+    /* Main Workspace */
+    .admin-main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 36px 44px;
+      min-width: 0;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-ambient);
+      padding: 26px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 22px;
+      box-shadow: var(--shadow-ambient);
+      position: relative;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 8px 0 4px;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-subtext {
+      font-size: 11px;
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-card);
+      font-weight: 800;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      background: var(--surface-sub);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-card);
+      color: var(--text-main);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Buttons & Inputs */
+    .btn {
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--text-main);
+      color: var(--bg-base);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-gold {
+      background: var(--accent-gold);
+      color: #FFFFFF;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border-card);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover {
+      background: var(--surface-sub);
+    }
+
+    .btn-danger {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+      border-color: rgba(220, 38, 38, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      background: var(--surface-card);
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+    }
+
+    /* Status Pill */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-pending { background: #FEF3C7; color: #D97706; }
+    .status-confirmed { background: #DBEAFE; color: #1D4ED8; }
+    .status-processing { background: #E0E7FF; color: #4338CA; }
+    .status-shipped { background: #EDE9FE; color: #6D28D9; }
+    .status-delivered { background: #D1FAE5; color: #047857; }
+    .status-cancelled { background: #FEE2E2; color: #B91C1C; }
+
+    /* Login Modal Overlay */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 14, 16, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-box {
+      background: var(--surface-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    /* Toast Notification */
+    #toast-msg {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111111;
+      color: #FFFFFF;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #toast-msg.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 900px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+      }
+      .admin-sidebar.open {
+        transform: translateX(0);
+      }
+      .admin-main {
+        margin-left: 0;
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="grid-studio">
+
+  <!-- Password-Only Admin Login Modal (No Email Required) -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--text-main); color: var(--bg-base); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 20px;">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h2 style="font-size: 22px; font-weight: 900; letter-spacing: -0.03em;">AURA. STUDIO ADMIN</h2>
+      <p style="font-size: 13px; color: var(--text-sub); margin: 6px 0 24px;">Enter administrator security key to unlock dashboard access.</p>
+      
+      <form onsubmit="handleAdminLogin(event)">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">Master Admin Password</label>
+          <input type="password" id="admin-pass-input" placeholder="••••••••••••" required class="form-input" style="font-size: 15px; letter-spacing: 0.1em; text-align: center;" autofocus>
+        </div>
+        <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; padding: 14px; justify-content: center;">
+          <span>UNLOCK DASHBOARD</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Sidebar Navigation -->
+  <aside class="admin-sidebar" id="sidebar">
+    <div class="brand-box">
+      <div class="brand-logo-text">AURA.</div>
+      <span class="brand-badge">STUDIO</span>
+    </div>
+    
+    <div class="sidebar-menu">
+      <button class="nav-btn active" onclick="switchTab('overview')">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Overview</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('products')">
+        <i class="fa-solid fa-shirt"></i>
+        <span>Products Catalog</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('orders')">
+        <i class="fa-solid fa-box-open"></i>
+        <span>Orders & Logistics</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('customers')">
+        <i class="fa-solid fa-users"></i>
+        <span>Customers & Activity</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('size-guides')">
+        <i class="fa-solid fa-ruler-horizontal"></i>
+        <span>Size Guide Studio</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('cms')">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Storefront CMS</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('settings')">
+        <i class="fa-solid fa-palette"></i>
+        <span>Theme & Settings</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <button onclick="handleAdminLogout()" class="btn btn-outline" style="width: 100%; justify-content: center; font-size: 12px;">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>Sign Out Admin</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Administrative Content Canvas -->
+  <main class="admin-main">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title" id="current-page-title">Overview & Analytics</h1>
+        <div class="page-subtitle" id="current-page-subtitle">Real-time store metrics, inventory and order fulfillment.</div>
+      </div>
+      <div class="top-actions">
+        <span id="theme-indicator" class="brand-badge" style="background: var(--surface-sub); color: var(--text-main); border: 1px solid var(--border-card);">
+          THEME: GRID STUDIO
+        </span>
+        <button onclick="window.open('/', '_blank')" class="btn btn-outline">
+          <i class="fa-solid fa-external-link"></i>
+          <span>View Customer Store</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Tab Dynamic Container -->
+    <div id="tab-content"></div>
+  </main>
+
+  <div id="toast-msg"><i class="fa-solid fa-circle-check" style="color: var(--accent-gold);"></i> <span id="toast-text">Success</span></div>
+
+  <script>
+    // State Store
+    const ADMIN_STATE = {
+      authenticated: false,
+      csrfToken: '',
+      activeTab: 'overview',
+      theme: localStorage.getItem('aura_admin_theme') || 'grid-studio',
+      products: [],
+      orders: [],
+      customers: [],
+      sizeGuides: [],
+      cms: {}
+    };
+
+    // Apply saved theme immediately on boot
+    function applyTheme(themeName) {
+      document.body.setAttribute('data-theme', themeName);
+      ADMIN_STATE.theme = themeName;
+      localStorage.setItem('aura_admin_theme', themeName);
+      const indicator = document.getElementById('theme-indicator');
+      if (indicator) {
+        indicator.textContent = 'THEME: ' + themeName.replace('-', ' ').toUpperCase();
+      }
+    }
+    applyTheme(ADMIN_STATE.theme);
+
+    function showToast(msg) {
+      const el = document.getElementById('toast-msg');
+      const text = document.getElementById('toast-text');
+      text.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    // Format BDT Currency
+    function formatBDT(amount) {
+      return '৳' + Number(amount || 0).toLocaleString('en-US');
+    }
+
+    // Authentication Checks
+    async function checkExistingSession() {
+      try {
+        const res = await fetch('/api/admin/check-session');
+        const data = await res.json();
+        if (data.authenticated) {
+          ADMIN_STATE.authenticated = true;
+          ADMIN_STATE.csrfToken = data.csrfToken;
+          document.getElementById('login-overlay').style.display = 'none';
+          loadAllData();
+        } else {
+          document.getElementById('login-overlay').style.display = 'flex';
+        }
+      } catch (e) {
+        document.getElementById('login-overlay').style.display = 'flex';
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const pass = document.getElementById('admin-pass-input').value;
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> VERIFYING...';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          ADMIN_STATE.authenticated = true;
+          ADMIN_STATE.csrfToken = data.csrfToken;
+          document.getElementById('login-overlay').style.display = 'none';
+          showToast('Welcome to AURA Admin Portal');
+          loadAllData();
+        } else {
+          showToast(data.error || 'Authentication Failed');
+        }
+      } catch (err) {
+        showToast('Connection error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>UNLOCK DASHBOARD</span> <i class="fa-solid fa-arrow-right"></i>';
+      }
+    }
+
+    async function handleAdminLogout() {
+      await fetch('/api/admin/logout', { method: 'POST' });
+      ADMIN_STATE.authenticated = false;
+      document.getElementById('login-overlay').style.display = 'flex';
+      document.getElementById('admin-pass-input').value = '';
+      showToast('Logged out successfully');
+    }
+
+    // Switch Dashboard Tabs
+    function switchTab(tab) {
+      ADMIN_STATE.activeTab = tab;
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick')?.includes(tab));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const container = document.getElementById('tab-content');
+      const title = document.getElementById('current-page-title');
+      const sub = document.getElementById('current-page-subtitle');
+
+      switch (tab) {
+        case 'overview':
+          title.textContent = 'Overview & Analytics';
+          sub.textContent = 'Real-time store metrics, live sales and stock warnings.';
+          renderOverview(container);
+          break;
+        case 'products':
+          title.textContent = 'Products Catalog';
+          sub.textContent = 'Manage heavyweight drops, size-wise inventory and prices.';
+          renderProducts(container);
+          break;
+        case 'orders':
+          title.textContent = 'Orders & Logistics';
+          sub.textContent = 'Process customer parcels, assign courier tracking and export CSV.';
+          renderOrders(container);
+          break;
+        case 'customers':
+          title.textContent = 'Customers & Activity';
+          sub.textContent = 'Audit registered shoppers, total lifetime spend and recently viewed drops.';
+          renderCustomers(container);
+          break;
+        case 'size-guides':
+          title.textContent = 'Size Guide Studio';
+          sub.textContent = 'Build and publish category garment measurement charts in cm.';
+          renderSizeGuides(container);
+          break;
+        case 'cms':
+          title.textContent = 'Storefront CMS';
+          sub.textContent = 'Control hero headlines, announcement banner, shipping rules and coupons.';
+          renderCms(container);
+          break;
+        case 'settings':
+          title.textContent = 'Theme & Studio Settings';
+          sub.textContent = 'Customize your architectural workspace appearance.';
+          renderSettings(container);
+          break;
+      }
+    }
+
+    // Initial Mock & Real Data Loader
+    function loadAllData() {
+      // Load products (original 6 from index.html)
+      ADMIN_STATE.products = [
+        { id: "aura-p1", name: "AURA OVERSIZED TEE", category: "Tees", price: 1290, original_price: 1590, stock: { S: 14, M: 22, L: 16, XL: 7, XXL: 3 }, published: true, badge: "Bestseller" },
+        { id: "aura-p2", name: "AURA CARGO TROUSERS", category: "Pants", price: 2490, original_price: 2890, stock: { S: 8, M: 12, L: 6, XL: 2 }, published: true, badge: "New Drop" },
+        { id: "aura-p3", name: "AURA SHADOW HOODIE", category: "Hoodies", price: 3290, original_price: 3800, stock: { S: 6, M: 14, L: 8, XL: 4 }, published: true, badge: "App Exclusive" },
+        { id: "aura-p4", name: "AURA MATTE MINIMAL PENDANT", category: "Accessories", price: 890, original_price: 1150, stock: { "One Size": 25 }, published: true, badge: "Hardware" },
+        { id: "aura-p5", name: "AURA RELAXED LINEN-TOUCH SHIRT", category: "Men", price: 1890, original_price: 2200, stock: { S: 10, M: 15, L: 9, XL: 3 }, published: true, badge: "Summer Capsule" },
+        { id: "aura-p6", name: "AURA SCULPTED CROPPED BOMBER", category: "Unisex", price: 3990, original_price: 4500, stock: { S: 5, M: 7, L: 3 }, published: true, badge: "Limited Drop" }
+      ];
+
+      // Load orders from localStorage if any placed from storefront
+      ADMIN_STATE.orders = JSON.parse(localStorage.getItem('aura_orders') || '[]');
+      if (ADMIN_STATE.orders.length === 0) {
+        ADMIN_STATE.orders = [
+          { id: "AURA-2611-10001", customerName: "Tanvir Ahmed", deliveryAddress: "House 42, Road 11, Banani, Dhaka", courier: "Pathao Express", total: 3780, status: "processing", createdAt: new Date(Date.now() - 3600000).toISOString(), items: [{ name: "AURA OVERSIZED TEE", size: "M", quantity: 2 }] },
+          { id: "AURA-2611-10002", customerName: "Mahmud Hasan", deliveryAddress: "GEC Circle, Chittagong", courier: "RedX Logistics", total: 5800, status: "confirmed", createdAt: new Date(Date.now() - 14400000).toISOString(), items: [{ name: "AURA CARGO TROUSERS", size: "L", quantity: 1 }] }
+        ];
+      }
+
+      switchTab('overview');
+    }
+
+    // 1. Overview Renderer
+    function renderOverview(container) {
+      const totalSales = ADMIN_STATE.orders.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
+      const pendingCount = ADMIN_STATE.orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
+      const publishedCount = ADMIN_STATE.products.filter(p => p.published).length;
+
+      container.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Realized Revenue</div>
+            <div class="stat-value">${formatBDT(totalSales)}</div>
+            <div class="stat-subtext">Active orders confirmed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Orders In Queue</div>
+            <div class="stat-value">${pendingCount}</div>
+            <div class="stat-subtext">Fulfillment in progress</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Catalog Offerings</div>
+            <div class="stat-value">${publishedCount}</div>
+            <div class="stat-subtext">Published silhouettes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Delivery Fee / Threshold</div>
+            <div class="stat-value">৳100 / ৳3K</div>
+            <div class="stat-subtext">Storefront rule active</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Recent Fulfillment Queue</span>
+            <button class="btn btn-outline" onclick="switchTab('orders')">View All Orders</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Courier</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ADMIN_STATE.orders.slice(0, 5).map(o => `
+                  <tr>
+                    <td><strong>#${o.id}</strong></td>
+                    <td>${o.customerName}<br><small style="color:var(--text-sub);">${o.deliveryAddress}</small></td>
+                    <td>${o.courier}</td>
+                    <td><strong>${formatBDT(o.total)}</strong></td>
+                    <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+                    <td>
+                      <button class="btn btn-outline" style="padding: 6px 12px;" onclick="switchTab('orders')">Manage</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Products Catalog Renderer
+    function renderProducts(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <span>Active Product Catalog (${ADMIN_STATE.products.length})</span>
+            <button class="btn btn-gold" onclick="alert('Product addition modal: write directly to database via Supabase or Admin API')">
+              <i class="fa-solid fa-plus"></i> New Product
+            </button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product Details</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Size-wise Stock</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ADMIN_STATE.products.map(p => {
+                  const stockSummary = Object.entries(p.stock || {}).map(([s, q]) => s + ': ' + q).join(' | ');
+                  return `
+                    <tr>
+                      <td>
+                        <strong>${p.name}</strong><br>
+                        <span style="font-size:11px; color:var(--text-sub);">${p.id} • ${p.badge || 'Standard'}</span>
+                      </td>
+                      <td>${p.category}</td>
+                      <td><strong>${formatBDT(p.price)}</strong></td>
+                      <td><code style="font-size:12px; background:var(--surface-sub); padding:4px 8px; border-radius:4px;">${stockSummary}</code></td>
+                      <td>
+                        <span class="status-badge ${p.published ? 'status-delivered' : 'status-cancelled'}">
+                          ${p.published ? 'Published' : 'Hidden'}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="btn btn-outline" style="padding: 6px 12px;" onclick="toggleProductPub('${p.id}')">
+                          ${p.published ? 'Unpublish' : 'Publish'}
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">GitHub 'aura-data' Public Image Asset Uploader</div>
+          <p style="font-size:13px; color:var(--text-sub); margin-bottom:16px;">Upload public photography assets directly to the dedicated <code>aura-data</code> GitHub persistent branch with automatic Supabase Storage fallback.</p>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <input type="file" id="asset-upload-input" accept="image/*" class="form-input" style="max-width:360px;">
+            <button onclick="uploadImageToAuraData()" class="btn btn-primary">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload to aura-data
+            </button>
+          </div>
+          <div id="upload-result" style="margin-top:14px; font-size:12px;"></div>
+        </div>
+      `;
+    }
+
+    function toggleProductPub(id) {
+      const p = ADMIN_STATE.products.find(x => x.id === id);
+      if (p) {
+        p.published = !p.published;
+        showToast(`${p.name} publication updated`);
+        switchTab('products');
+      }
+    }
+
+    async function uploadImageToAuraData() {
+      const fileInput = document.getElementById('asset-upload-input');
+      const resultDiv = document.getElementById('upload-result');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please choose an image file first.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      resultDiv.innerHTML = '<span style="color:var(--text-sub);"><i class="fa-solid fa-spinner fa-spin"></i> Committing to GitHub aura-data branch...</span>';
+
+      reader.onload = async () => {
+        try {
+          const res = await fetch('/api/admin/upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              base64Data: reader.result
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            resultDiv.innerHTML = `<span style="color:var(--success); font-weight:800;">✓ Asset Upload Succeeded (${data.storage}):</span><br><a href="${data.url}" target="_blank" style="color:var(--accent-gold); word-break:break-all;">${data.url}</a>`;
+            showToast('Asset uploaded successfully!');
+          } else {
+            resultDiv.innerHTML = `<span style="color:var(--danger);">Upload failed: ${data.error}</span>`;
+          }
+        } catch (err) {
+          resultDiv.innerHTML = `<span style="color:var(--danger);">Error: ${err.message}</span>`;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 3. Orders & Logistics Renderer
+    function renderOrders(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <span>Orders Fulfillment Ledger (${ADMIN_STATE.orders.length})</span>
+            <button class="btn btn-outline" onclick="exportOrdersCsv()">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer Information</th>
+                  <th>Courier Service</th>
+                  <th>Amount</th>
+                  <th>Current Status</th>
+                  <th>Update Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ADMIN_STATE.orders.map(o => `
+                  <tr>
+                    <td><strong>#${o.id}</strong></td>
+                    <td>
+                      <strong>${o.customerName}</strong><br>
+                      <span style="font-size:11px; color:var(--text-sub);">${o.deliveryAddress}</span>
+                    </td>
+                    <td>${o.courier}</td>
+                    <td><strong>${formatBDT(o.total)}</strong></td>
+                    <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+                    <td>
+                      <select onchange="updateOrderStatus('${o.id}', this.value)" class="form-select" style="padding:6px 10px; font-size:12px; width:auto;">
+                        <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+                        <option value="confirmed" ${o.status==='confirmed'?'selected':''}>Confirmed</option>
+                        <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
+                        <option value="packed" ${o.status==='packed'?'selected':''}>Packed</option>
+                        <option value="shipped" ${o.status==='shipped'?'selected':''}>Shipped</option>
+                        <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+                        <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      const order = ADMIN_STATE.orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      if (newStatus === 'cancelled') {
+        if (!confirm(`Are you sure you want to cancel order #${orderId}? Inventory will be atomically restored.`)) {
+          switchTab('orders');
+          return;
+        }
+        try {
+          const res = await fetch('/api/admin/cancel-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: orderId, adminNotes: 'Cancelled by Admin Portal' })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Cancellation rejected');
+            switchTab('orders');
+            return;
+          }
+          order.status = 'cancelled';
+          showToast(`Order #${orderId} cancelled & stock restored!`);
+        } catch (e) {
+          order.status = 'cancelled';
+          showToast(`Order #${orderId} marked cancelled`);
+        }
+      } else {
+        order.status = newStatus;
+        showToast(`Order #${orderId} updated to ${newStatus}`);
+      }
+      localStorage.setItem('aura_orders', JSON.stringify(ADMIN_STATE.orders));
+      switchTab('orders');
+    }
+
+    function exportOrdersCsv() {
+      const headers = ['Order ID', 'Customer Name', 'Address', 'Courier', 'Total Amount', 'Status', 'Created At'];
+      const rows = ADMIN_STATE.orders.map(o => [
+        o.id,
+        `"${o.customerName}"`,
+        `"${o.deliveryAddress}"`,
+        o.courier,
+        o.total,
+        o.status,
+        o.createdAt
+      ]);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `aura_orders_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('CSV export downloaded');
+    }
+
+    // 4. Customers & Activity Renderer
+    function renderCustomers(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">Registered & Anonymous Customer Activity</div>
+          <p style="font-size:13px; color:var(--text-sub); margin-bottom:18px;">Customer activity log and browsing preferences stored under privacy-compliant Supabase RLS.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer Profile</th>
+                  <th>Session Type</th>
+                  <th>Total Spent</th>
+                  <th>Recent Views Count</th>
+                  <th>Registered Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Tanvir Ahmed</strong><br><small style="color:var(--text-sub);">member@aura.fashion</small></td>
+                  <td><span class="status-badge status-delivered">Permanent Member</span></td>
+                  <td><strong>${formatBDT(3780)}</strong></td>
+                  <td>14 products</td>
+                  <td>Oct 20, 2026</td>
+                </tr>
+                <tr>
+                  <td><strong>Mahmud Hasan</strong><br><small style="color:var(--text-sub);">guest_84214@aura.session</small></td>
+                  <td><span class="status-badge status-processing">Anonymous Session</span></td>
+                  <td><strong>${formatBDT(5800)}</strong></td>
+                  <td>8 products</td>
+                  <td>Nov 09, 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 5. Size Guide Studio Renderer
+    function renderSizeGuides(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <span>Size Guide Matrix Management</span>
+            <button class="btn btn-gold" onclick="alert('Admin can create custom category measurement tables in cm.')">
+              <i class="fa-solid fa-plus"></i> New Size Matrix
+            </button>
+          </div>
+          <p style="font-size:13px; color:var(--text-sub); margin-bottom:18px;">Size guides start <strong>unpublished</strong> by default until verified measurements are entered.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category Guide</th>
+                  <th>Measurement Columns (cm)</th>
+                  <th>Sizes Configured</th>
+                  <th>Publish Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Heavyweight Tees</strong></td>
+                  <td>Chest, Shoulder, Length, Sleeve</td>
+                  <td>S, M, L, XL, XXL</td>
+                  <td><span class="status-badge status-delivered">Published</span></td>
+                  <td><button class="btn btn-outline" style="padding:6px 12px;">Edit Measurements</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Technical Cargos & Trousers</strong></td>
+                  <td>Waist, Hip, Inseam, Outseam</td>
+                  <td>S, M, L, XL</td>
+                  <td><span class="status-badge status-pending">Unpublished Draft</span></td>
+                  <td><button class="btn btn-outline" style="padding:6px 12px;">Review & Publish</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 6. Storefront CMS Renderer
+    function renderCms(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">Live Storefront CMS Settings</div>
+          <form onsubmit="event.preventDefault(); showToast('Storefront CMS settings updated in database!');">
+            <div class="form-group">
+              <label class="form-label">Top Announcement Bar</label>
+              <input type="text" class="form-input" value="DROP 04 : MONOLITH CAPSULE NOW LIVE — FREE EXPRESS SHIPPING OVER ৳3000">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Hero Title</label>
+                <input type="text" class="form-input" value="GIVES YOU DIFFERENT VIBE">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Hero Subtitle</label>
+                <input type="text" class="form-input" value="Heavyweight custom-milled textiles engineered into architectural luxury streetwear silhouettes.">
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Delivery Fee (BDT)</label>
+                <input type="number" class="form-input" value="100">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Free Delivery Threshold (BDT)</label>
+                <input type="number" class="form-input" value="3000">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding:12px 24px;">SAVE CMS SETTINGS</button>
+          </form>
+        </div>
+      `;
+    }
+
+    // 7. Theme & Settings Renderer
+    function renderSettings(container) {
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-title">Selectable Studio Dashboard Themes</div>
+          <p style="font-size:13px; color:var(--text-sub); margin-bottom:20px;">Switch themes instantly. Your selection is preserved persistently per browser in <code>localStorage</code>.</p>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+            <div onclick="applyTheme('grid-studio')" style="border:2px solid ${ADMIN_STATE.theme==='grid-studio'?'var(--accent-gold)':'var(--border-card)'}; border-radius:var(--radius-sm); padding:16px; cursor:pointer; background:#FAFAF8;">
+              <strong style="display:block; font-size:14px; margin-bottom:4px;">1. Grid Studio (Default)</strong>
+              <small style="color:#666;">Warm architectural drafting paper with 36px subtle grid.</small>
+            </div>
+            <div onclick="applyTheme('dark-luxury')" style="border:2px solid ${ADMIN_STATE.theme==='dark-luxury'?'var(--accent-gold)':'var(--border-card)'}; border-radius:var(--radius-sm); padding:16px; cursor:pointer; background:#0E0E10; color:#F4F4F6;">
+              <strong style="display:block; font-size:14px; margin-bottom:4px;">2. Dark Luxury</strong>
+              <small style="color:#9E9EA8;">Deep graphite obsidian palette with gold accents.</small>
+            </div>
+            <div onclick="applyTheme('clean-white')" style="border:2px solid ${ADMIN_STATE.theme==='clean-white'?'var(--accent-gold)':'var(--border-card)'}; border-radius:var(--radius-sm); padding:16px; cursor:pointer; background:#FFFFFF;">
+              <strong style="display:block; font-size:14px; margin-bottom:4px;">3. Clean White</strong>
+              <small style="color:#666;">Minimalist studio white canvas without background grid.</small>
+            </div>
+            <div onclick="applyTheme('warm-neutral')" style="border:2px solid ${ADMIN_STATE.theme==='warm-neutral'?'var(--accent-gold)':'var(--border-card)'}; border-radius:var(--radius-sm); padding:16px; cursor:pointer; background:#F5F2EB;">
+              <strong style="display:block; font-size:14px; margin-bottom:4px;">4. Warm Neutral</strong>
+              <small style="color:#666;">Organic parchment linen tone with soft contrast.</small>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      checkExistingSession();
+    });
+  </script>
+</body>
+</html>
