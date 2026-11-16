@@ -1,545 +1,703 @@
 /**
- * AURA Fashion - Comprehensive Automated Production Test Suite
- * Covers all 13 critical requirements:
- * 1. Cross-user idempotency key reuse rejection
- * 2. Same key with changed checkout payload fingerprint rejection
- * 3. Sequential order IDs above 10,000 without modulo overflow
- * 4. Invalid size/color and malformed cart bounds validation
- * 5. Concurrent order rate-limiting attempts
- * 6. Missing storefront_settings row fallback to ৳100 / ৳3000
- * 7. Invalid payment method and courier rejection
- * 8. Cancellation of delivered orders prohibition
- * 9. Missing inventory row during cancellation protection
- * 10. Concurrent cancellation idempotency
- * 11. Public access protection on unpublished policies
- * 12. Protected profile columns (customers can only update full_name & phone)
- * 13. Concurrency-safe recently-viewed pruning to max 20 items
+ * AURA Fashion — End-to-End Production Test Suite (GitHub 'aura-product' Storage)
+ * Tests real HTTP routes (server.js), GitHub REST API client (lib/github-store.js),
+ * transactional store service (lib/store-service.js), dynamic admin auth,
+ * checkout atomicity/idempotency, cancellation restocking, and recently viewed pruning.
  */
 
 const assert = require('assert');
 const crypto = require('crypto');
 const http = require('http');
 
+const { server, ADMIN_PASSWORD_ENV_KEYS } = require('../server');
+const { clearStoreCache } = require('../lib/github-store');
+
 let testsPassed = 0;
 let testsFailed = 0;
 
-function runTest(name, fn) {
-  try {
-    fn();
-    console.log(`\x1b[32m✓ [PASS]\x1b[0m ${name}`);
-    testsPassed++;
-  } catch (err) {
-    console.error(`\x1b[31m✗ [FAIL]\x1b[0m ${name}: ${err.message}`);
-    testsFailed++;
-  }
-}
-
-async function runAsyncTest(name, fn) {
+async function runTest(name, fn) {
   try {
     await fn();
     console.log(`\x1b[32m✓ [PASS]\x1b[0m ${name}`);
     testsPassed++;
   } catch (err) {
-    console.error(`\x1b[31m✗ [FAIL]\x1b[0m ${name}: ${err.message}`);
+    console.error(`\x1b[31m✗ [FAIL]\x1b[0m ${name}: ${err.stack || err.message}`);
     testsFailed++;
   }
 }
 
-// In-Memory Database Simulator for PostgreSQL Logic Verification
-const simulatedDb = {
-  orderSeq: 10001,
-  products: {
-    'aura-p1': { id: 'aura-p1', name: 'AURA OVERSIZED TEE', price: 1290, sizes: ['S', 'M', 'L', 'XL', 'XXL'], colors: [{ name: 'Onyx Black' }, { name: 'Chalk White' }, { name: 'Heather Grey' }], is_published: true },
-    'aura-p2': { id: 'aura-p2', name: 'AURA CARGO TROUSERS', price: 2490, sizes: ['S', 'M', 'L', 'XL'], colors: [{ name: 'Onyx Black' }, { name: 'Desert Sand' }], is_published: true }
-  },
-  inventory: {
-    'aura-p1:M': 22,
-    'aura-p1:L': 16,
-    'aura-p2:M': 12
-  },
-  orders: new Map(),
-  recentlyViewed: new Map(), // userId -> [{ productId, viewedAt }]
-  storefrontSettings: {
-    shipping_fee: 100,
-    free_shipping_threshold: 3000,
-    available_payment_methods: ['Cash on Delivery'],
-    available_couriers: ['Pathao Express', 'RedX Logistics', 'Steadfast Courier'],
-    policies_published: false,
-    privacy_policy: 'Secret Draft Policy'
-  }
-};
-
-function computePayloadFingerprint(payload) {
-  const canonical = JSON.stringify({
-    items: payload.items,
-    name: payload.name,
-    phone: payload.phone,
-    address: payload.address,
-    courier: payload.courier,
-    paymentMethod: payload.paymentMethod,
-    couponCode: payload.couponCode
+function httpRequest(port, method, reqPath, bodyObj = null, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const payload = bodyObj !== null ? JSON.stringify(bodyObj) : null;
+    const reqHeaders = { ...headers };
+    if (payload !== null) {
+      reqHeaders['Content-Type'] = 'application/json';
+      reqHeaders['Content-Length'] = Buffer.byteLength(payload);
+    }
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path: reqPath,
+      method,
+      headers: reqHeaders
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        let parsed = data;
+        const ct = String(res.headers['content-type'] || '');
+        if (ct.includes('application/json') && data) {
+          try { parsed = JSON.parse(data); } catch (_) {}
+        }
+        resolve({ status: res.statusCode, headers: res.headers, body: parsed });
+      });
+    });
+    req.on('error', reject);
+    if (payload !== null) req.write(payload);
+    req.end();
   });
-  return crypto.createHash('sha256').update(canonical).digest('hex');
 }
 
-function simulatePlaceOrderAtomic(authUid, payload) {
-  if (!authUid) throw new Error('Authentication required');
-  if (!payload.idempotency_key) throw new Error('Idempotency key is required');
-  if (!payload.payload_fingerprint) throw new Error('Payload fingerprint is required');
-
-  // Idempotency check
-  const existing = simulatedDb.orders.get(payload.idempotency_key);
-  if (existing) {
-    if (existing.user_id !== authUid) {
-      throw new Error('Idempotency key conflict: key already claimed by another user');
+// ============================================================================
+// In-Memory Mock GitHub REST API Server
+// ============================================================================
+function createMockGitHubServer() {
+  const state = {
+    branches: {
+      main: 'commit_main_001'
+    },
+    filesByBranch: {
+      main: new Map()
     }
-    if (existing.payload_fingerprint !== payload.payload_fingerprint) {
-      throw new Error('Idempotency key reuse error: payload does not match original submission');
-    }
-    return { success: true, order_id: existing.id, is_duplicate: true };
-  }
-
-  // Courier & Payment Method Check
-  const allowedCouriers = simulatedDb.storefrontSettings.available_couriers || ['Pathao Express'];
-  if (!allowedCouriers.includes(payload.courier)) {
-    throw new Error(`Courier "${payload.courier}" is not supported`);
-  }
-
-  const allowedMethods = simulatedDb.storefrontSettings.available_payment_methods || ['Cash on Delivery'];
-  if (!allowedMethods.includes(payload.payment_method)) {
-    throw new Error(`Payment method "${payload.payment_method}" is not currently accepted`);
-  }
-
-  // Items validation
-  if (!payload.items || !payload.items.length) throw new Error('Shopping bag is empty');
-
-  // Aggregate by product_id + size
-  const reqs = new Map();
-  for (const item of payload.items) {
-    if (item.quantity <= 0 || item.quantity > 10) throw new Error('Line quantity must be between 1 and 10');
-    const prod = simulatedDb.products[item.product_id];
-    if (!prod || !prod.is_published) throw new Error('Product is unavailable or unpublished');
-    if (!prod.sizes.includes(item.size)) throw new Error(`Size ${item.size} is not valid`);
-    if (!prod.colors.some(c => c.name === item.color)) throw new Error(`Color ${item.color} is not valid`);
-
-    const key = `${item.product_id}:${item.size}`;
-    reqs.set(key, (reqs.get(key) || 0) + item.quantity);
-  }
-
-  // Stock check
-  for (const [key, totalQty] of reqs.entries()) {
-    if (totalQty > 20) throw new Error('Aggregated quantity exceeds limit of 20 units');
-    const available = simulatedDb.inventory[key];
-    if (available === undefined) throw new Error('Inventory record missing');
-    if (available < totalQty) throw new Error('Insufficient stock');
-  }
-
-  // Deduct stock
-  for (const [key, totalQty] of reqs.entries()) {
-    simulatedDb.inventory[key] -= totalQty;
-  }
-
-  // Sequence Order ID
-  const orderId = `AURA-2611-${simulatedDb.orderSeq++}`;
-  const orderRecord = {
-    id: orderId,
-    user_id: authUid,
-    idempotency_key: payload.idempotency_key,
-    payload_fingerprint: payload.payload_fingerprint,
-    status: 'pending',
-    items: payload.items
   };
-  simulatedDb.orders.set(payload.idempotency_key, orderRecord);
-  return { success: true, order_id: orderId, total_amount: 1390 };
-}
 
-function simulateCancelOrderAtomic(orderId) {
-  let found = null;
-  for (const o of simulatedDb.orders.values()) {
-    if (o.id === orderId) { found = o; break; }
-  }
-  if (!found) throw new Error('Order does not exist');
-  if (found.status === 'cancelled') {
-    return { success: true, already_cancelled: true, message: 'Already cancelled' };
-  }
-  if (found.status === 'delivered') {
-    throw new Error('Cannot cancel a delivered order');
+  function shaOf(buf) {
+    return crypto.createHash('sha1').update(buf).digest('hex');
   }
 
-  // Verify inventory exists
-  for (const it of found.items) {
-    const key = `${it.product_id}:${it.size}`;
-    if (simulatedDb.inventory[key] === undefined) throw new Error('Inventory row missing');
+  function readJsonBody(req) {
+    return new Promise((resolve) => {
+      let raw = '';
+      req.on('data', c => { raw += c; });
+      req.on('end', () => {
+        try { resolve(raw ? JSON.parse(raw) : {}); } catch (_) { resolve({}); }
+      });
+    });
   }
 
-  // Restore inventory
-  for (const it of found.items) {
-    const key = `${it.product_id}:${it.size}`;
-    simulatedDb.inventory[key] += it.quantity;
-  }
-  found.status = 'cancelled';
-  return { success: true, already_cancelled: false, message: 'Order cancelled and stock restored' };
+  const ghServer = http.createServer(async (req, res) => {
+    const auth = req.headers.authorization || '';
+    if (!auth.startsWith('Bearer ')) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ message: 'Bad credentials' }));
+    }
+
+    const parsed = new URL(req.url, 'http://127.0.0.1');
+    const pathname = parsed.pathname;
+
+    // GET /repos/:owner/:repo
+    let match = pathname.match(/^\/repos\/([^/]+)\/([^/]+)$/);
+    if (match && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ name: match[2], default_branch: 'main' }));
+    }
+
+    // GET /repos/:owner/:repo/branches/:branch
+    match = pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/branches\/([^/]+)$/);
+    if (match && req.method === 'GET') {
+      const branch = decodeURIComponent(match[3]);
+      if (!state.branches[branch]) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ message: 'Branch not found' }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ name: branch, commit: { sha: state.branches[branch] } }));
+    }
+
+    // GET /repos/:owner/:repo/git/ref/heads/:branch
+    match = pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/git\/ref\/heads\/(.+)$/);
+    if (match && req.method === 'GET') {
+      const branch = decodeURIComponent(match[3]);
+      if (!state.branches[branch]) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ message: 'Not Found' }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ref: `refs/heads/${branch}`, object: { sha: state.branches[branch] } }));
+    }
+
+    // POST /repos/:owner/:repo/git/refs
+    match = pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/git\/refs$/);
+    if (match && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const refName = String(body.ref || '').replace(/^refs\/heads\//, '');
+      if (!refName || state.branches[refName]) {
+        res.writeHead(422, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ message: 'Reference already exists' }));
+      }
+      state.branches[refName] = body.sha;
+      if (!state.filesByBranch[refName]) {
+        state.filesByBranch[refName] = new Map();
+      }
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ref: `refs/heads/${refName}`, object: { sha: body.sha } }));
+    }
+
+    // GET/PUT /repos/:owner/:repo/contents/:path
+    match = pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/contents\/(.+)$/);
+    if (match) {
+      const filePath = match[3].split('/').map(decodeURIComponent).join('/');
+      if (req.method === 'GET') {
+        const branch = parsed.searchParams.get('ref') || 'main';
+        const branchFiles = state.filesByBranch[branch];
+        const entry = branchFiles ? branchFiles.get(filePath) : null;
+        if (!entry) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ message: 'Not Found' }));
+        }
+        const etag = `"${entry.sha}"`;
+        if (req.headers['if-none-match'] === etag) {
+          res.writeHead(304);
+          return res.end();
+        }
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'ETag': etag
+        });
+        return res.end(JSON.stringify({
+          name: filePath.split('/').pop(),
+          path: filePath,
+          sha: entry.sha,
+          encoding: 'base64',
+          content: entry.contentBase64
+        }));
+      }
+
+      if (req.method === 'PUT') {
+        const body = await readJsonBody(req);
+        const branch = body.branch || 'main';
+        if (!state.branches[branch]) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ message: `Branch ${branch} does not exist` }));
+        }
+        const branchFiles = state.filesByBranch[branch];
+        const existing = branchFiles.get(filePath);
+        if (existing && body.sha !== existing.sha) {
+          res.writeHead(409, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ message: 'SHA mismatch conflict' }));
+        }
+        const cleanB64 = String(body.content || '').replace(/\s+/g, '');
+        const newSha = shaOf(Buffer.from(cleanB64, 'base64'));
+        branchFiles.set(filePath, {
+          contentBase64: cleanB64,
+          sha: newSha,
+          commitMessage: body.message
+        });
+        res.writeHead(existing ? 200 : 201, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          content: {
+            path: filePath,
+            sha: newSha
+          }
+        }));
+      }
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Unknown mock GitHub route' }));
+  });
+
+  return { ghServer, state };
 }
 
 async function startSuite() {
   console.log('================================================================');
-  console.log('AURA FASHION — PRODUCTION TEST SUITE EXECUTION');
+  console.log('AURA FASHION — GITHUB AURA-PRODUCT PRODUCTION TEST SUITE');
   console.log('================================================================\n');
 
-  // Test 1: Cross-user idempotency key reuse
-  runTest('1. Cross-User Idempotency Key Reuse is strictly rejected', () => {
-    const p1 = {
-      idempotency_key: 'idem_key_shared_001',
-      payload_fingerprint: 'fp_user_a',
-      items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-      courier: 'Pathao Express',
-      payment_method: 'Cash on Delivery'
-    };
-    simulatePlaceOrderAtomic('user_a', p1);
-
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_b', p1);
-    }, /Idempotency key conflict: key already claimed by another user/);
-  });
-
-  // Test 2: Same key with changed payload fingerprint
-  runTest('2. Same Idempotency Key with Modified Payload is strictly rejected', () => {
-    const p = {
-      idempotency_key: 'idem_key_fp_002',
-      payload_fingerprint: 'fp_initial',
-      items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-      courier: 'Pathao Express',
-      payment_method: 'Cash on Delivery'
-    };
-    simulatePlaceOrderAtomic('user_c', p);
-
-    const tampered = { ...p, payload_fingerprint: 'fp_altered_tampered' };
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_c', tampered);
-    }, /Idempotency key reuse error: payload does not match original submission/);
-  });
-
-  // Test 3: Sequential Order IDs above 10,000 without modulo overflow
-  runTest('3. Order ID Generation maintains uniqueness above 10,000 orders', () => {
-    simulatedDb.orderSeq = 10001;
-    const res1 = simulatePlaceOrderAtomic('user_seq', {
-      idempotency_key: 'idem_seq_1',
-      payload_fingerprint: 'fp1',
-      items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-      courier: 'Pathao Express',
-      payment_method: 'Cash on Delivery'
-    });
-    assert.strictEqual(res1.order_id, 'AURA-2611-10001');
-
-    const res2 = simulatePlaceOrderAtomic('user_seq', {
-      idempotency_key: 'idem_seq_2',
-      payload_fingerprint: 'fp2',
-      items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-      courier: 'Pathao Express',
-      payment_method: 'Cash on Delivery'
-    });
-    assert.strictEqual(res2.order_id, 'AURA-2611-10002');
-  });
-
-  // Test 4: Invalid Size & Color Validation
-  runTest('4. Invalid Size and Color are rejected at database level', () => {
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_val', {
-        idempotency_key: 'idem_bad_size',
-        payload_fingerprint: 'fp_bad',
-        items: [{ product_id: 'aura-p1', size: 'XXXXL', color: 'Onyx Black', quantity: 1 }],
-        courier: 'Pathao Express',
-        payment_method: 'Cash on Delivery'
-      });
-    }, /Size XXXXL is not valid/);
-
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_val', {
-        idempotency_key: 'idem_bad_color',
-        payload_fingerprint: 'fp_bad2',
-        items: [{ product_id: 'aura-p1', size: 'M', color: 'Neon Pink', quantity: 1 }],
-        courier: 'Pathao Express',
-        payment_method: 'Cash on Delivery'
-      });
-    }, /Color Neon Pink is not valid/);
-  });
-
-  // Test 5: Quantity Bounds & Deadlock-Free Aggregation
-  runTest('5. Line Item bounds (1..10) and Aggregated Size bounds (max 20) are enforced', () => {
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_qty', {
-        idempotency_key: 'idem_qty_0',
-        payload_fingerprint: 'fp_0',
-        items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 0 }],
-        courier: 'Pathao Express',
-        payment_method: 'Cash on Delivery'
-      });
-    }, /Line quantity must be between 1 and 10/);
-
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_qty', {
-        idempotency_key: 'idem_qty_11',
-        payload_fingerprint: 'fp_11',
-        items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 11 }],
-        courier: 'Pathao Express',
-        payment_method: 'Cash on Delivery'
-      });
-    }, /Line quantity must be between 1 and 10/);
-  });
-
-  // Test 6: Missing storefront_settings fallback to ৳100 / ৳3000
-  runTest('6. Missing storefront_settings falls back safely to ৳100 fee and ৳3000 threshold', () => {
-    const backupSettings = { ...simulatedDb.storefrontSettings };
-    simulatedDb.storefrontSettings = {}; // Empty
-
-    const allowed = simulatedDb.storefrontSettings.available_payment_methods || ['Cash on Delivery'];
-    assert.deepStrictEqual(allowed, ['Cash on Delivery']);
-    const fee = simulatedDb.storefrontSettings.shipping_fee || 100;
-    assert.strictEqual(fee, 100);
-    const threshold = simulatedDb.storefrontSettings.free_shipping_threshold || 3000;
-    assert.strictEqual(threshold, 3000);
-
-    simulatedDb.storefrontSettings = backupSettings;
-  });
-
-  // Test 7: Invalid Payment Method and Courier Rejection
-  runTest('7. Unapproved Payment Methods and Couriers are strictly rejected', () => {
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_pm', {
-        idempotency_key: 'idem_bad_pm',
-        payload_fingerprint: 'fp_pm',
-        items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-        courier: 'Pathao Express',
-        payment_method: 'BitCoin'
-      });
-    }, /Payment method "BitCoin" is not currently accepted/);
-
-    assert.throws(() => {
-      simulatePlaceOrderAtomic('user_pm', {
-        idempotency_key: 'idem_bad_cr',
-        payload_fingerprint: 'fp_cr',
-        items: [{ product_id: 'aura-p1', size: 'M', color: 'Onyx Black', quantity: 1 }],
-        courier: 'Drone Drop Express',
-        payment_method: 'Cash on Delivery'
-      });
-    }, /Courier "Drone Drop Express" is not supported/);
-  });
-
-  // Test 8: Cancellation of Delivered Orders is Prohibited
-  runTest('8. Ordinary Cancellation of Delivered orders is forbidden', () => {
-    const order = {
-      id: 'AURA-2611-DELIVERED',
-      status: 'delivered',
-      items: [{ product_id: 'aura-p1', size: 'M', quantity: 1 }]
-    };
-    simulatedDb.orders.set('del_order', order);
-
-    assert.throws(() => {
-      simulateCancelOrderAtomic('AURA-2611-DELIVERED');
-    }, /Cannot cancel a delivered order/);
-  });
-
-  // Test 9: Missing Inventory Row Cancellation Protection
-  runTest('9. Cancellation aborts without modifying order if inventory row is missing', () => {
-    const order = {
-      id: 'AURA-2611-MISSING_INV',
-      status: 'pending',
-      items: [{ product_id: 'aura-p_ghost', size: 'M', quantity: 1 }]
-    };
-    simulatedDb.orders.set('ghost_order', order);
-
-    assert.throws(() => {
-      simulateCancelOrderAtomic('AURA-2611-MISSING_INV');
-    }, /Inventory row missing/);
-    assert.strictEqual(order.status, 'pending');
-  });
-
-  // Test 10: Concurrent Cancellation Idempotency
-  runTest('10. Repeated or Concurrent Cancellation restores inventory exactly once', () => {
-    const initialStock = simulatedDb.inventory['aura-p1:M'];
-    const order = {
-      id: 'AURA-2611-REPEAT_CANCEL',
-      status: 'pending',
-      items: [{ product_id: 'aura-p1', size: 'M', quantity: 2 }]
-    };
-    simulatedDb.orders.set('repeat_cancel', order);
-
-    const first = simulateCancelOrderAtomic('AURA-2611-REPEAT_CANCEL');
-    assert.strictEqual(first.already_cancelled, false);
-    assert.strictEqual(simulatedDb.inventory['aura-p1:M'], initialStock + 2);
-
-    // Second call
-    const second = simulateCancelOrderAtomic('AURA-2611-REPEAT_CANCEL');
-    assert.strictEqual(second.already_cancelled, true);
-    // Stock must NOT have incremented a second time
-    assert.strictEqual(simulatedDb.inventory['aura-p1:M'], initialStock + 2);
-  });
-
-  // Test 11: Public Access Protection on Unpublished Policies
-  runTest('11. Safe Public View hides unpublished policies and private contacts', () => {
-    const settings = {
-      policies_published: false,
-      privacy_policy: 'Secret Draft Privacy Policy',
-      store_phone: '+8801700000000'
-    };
-    const publicViewRow = {
-      privacy_policy: settings.policies_published ? settings.privacy_policy : null
-    };
-    assert.strictEqual(publicViewRow.privacy_policy, null);
-  });
-
-  // Test 12: Column-Level Protection on Customer Profiles
-  runTest('12. Customers can only modify full_name and phone; id and is_anonymous protected', () => {
-    const allowedColumns = ['full_name', 'phone'];
-    const attemptedUpdate = { id: 'attacker_uuid', is_anonymous: false, full_name: 'New Name' };
-
-    const sanitized = {};
-    for (const [k, v] of Object.entries(attemptedUpdate)) {
-      if (allowedColumns.includes(k)) sanitized[k] = v;
-    }
-    assert.deepStrictEqual(sanitized, { full_name: 'New Name' });
-    assert.strictEqual(sanitized.id, undefined);
-  });
-
-  // Test 13: Concurrency-Safe Recently Viewed Pruning to Max 20
-  runTest('13. Recently viewed products pruning keeps strictly the newest 20 items per user', () => {
-    const userId = 'usr_rv_test';
-    const list = [];
-    for (let i = 1; i <= 25; i++) {
-      list.unshift({ productId: `aura-p${i}`, viewedAt: new Date(Date.now() + i * 1000).toISOString() });
-    }
-    const pruned = list.slice(0, 20);
-    assert.strictEqual(pruned.length, 20);
-    assert.strictEqual(pruned[0].productId, 'aura-p25');
-  });
-
-  // HTTP Integration Tests for Dynamic Admin Authentication (No Hardcoded Fallback)
-  const { server, ADMIN_PASSWORD_ENV_KEYS } = require('../server');
-
-  function httpJsonRequest(port, method, reqPath, bodyObj = null, headers = {}) {
-    return new Promise((resolve, reject) => {
-      const payload = bodyObj ? JSON.stringify(bodyObj) : null;
-      const reqHeaders = { ...headers };
-      if (payload) {
-        reqHeaders['Content-Type'] = 'application/json';
-        reqHeaders['Content-Length'] = Buffer.byteLength(payload);
-      }
-      const req = http.request({
-        hostname: '127.0.0.1',
-        port,
-        path: reqPath,
-        method,
-        headers: reqHeaders
-      }, (res) => {
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          try {
-            resolve({
-              status: res.statusCode,
-              headers: res.headers,
-              body: data ? JSON.parse(data) : null
-            });
-          } catch (e) {
-            resolve({ status: res.statusCode, headers: res.headers, body: data });
-          }
-        });
-      });
-      req.on('error', reject);
-      if (payload) req.write(payload);
-      req.end();
-    });
-  }
-
+  const envKeys = [
+    ...ADMIN_PASSWORD_ENV_KEYS,
+    'GITHUB_TOKEN',
+    'GITHUB_OWNER',
+    'GITHUB_REPO',
+    'GITHUB_MAIN_BRANCH',
+    'GITHUB_PRODUCT_BRANCH',
+    'GITHUB_API_BASE',
+    'GITHUB_RAW_BASE'
+  ];
   const savedEnv = {};
-  for (const k of ADMIN_PASSWORD_ENV_KEYS) {
-    savedEnv[k] = process.env[k];
-  }
+  for (const k of envKeys) savedEnv[k] = process.env[k];
+
   const clearAdminEnv = () => {
-    for (const k of ADMIN_PASSWORD_ENV_KEYS) {
-      delete process.env[k];
-    }
+    for (const k of ADMIN_PASSWORD_ENV_KEYS) delete process.env[k];
   };
+  const clearGithubEnv = () => {
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_OWNER;
+    delete process.env.GITHUB_REPO;
+  };
+
+  const { ghServer, state: ghState } = createMockGitHubServer();
+  await new Promise((resolve) => ghServer.listen(0, '127.0.0.1', resolve));
+  const ghPort = ghServer.address().port;
 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const testPort = server.address().port;
 
   try {
-    // Test 14: Fails closed when no admin password env var is configured
-    await runAsyncTest('14. Admin login fails closed (HTTP 503) when unconfigured and rejects legacy hardcoded password', async () => {
+    // 1. Fail closed when GitHub and Admin Password env vars are unset
+    await runTest('1. Unconfigured GitHub/Admin env vars fail closed with HTTP 503', async () => {
       clearAdminEnv();
-      const healthRes = await httpJsonRequest(testPort, 'GET', '/health');
-      assert.strictEqual(healthRes.status, 200);
-      assert.strictEqual(healthRes.body.adminAuthConfigured, false);
+      clearGithubEnv();
+      clearStoreCache();
 
-      const loginRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'aura_admin_2026' });
+      const health = await httpRequest(testPort, 'GET', '/health');
+      assert.strictEqual(health.status, 200);
+      assert.strictEqual(health.body.storage, 'github');
+      assert.strictEqual(health.body.branch, 'aura-product');
+      assert.strictEqual(health.body.adminAuthConfigured, false);
+      assert.strictEqual(health.body.githubConfigured, false);
+
+      const storefront = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(storefront.status, 503);
+      assert.strictEqual(storefront.body.githubConfigured, false);
+
+      const loginRes = await httpRequest(testPort, 'POST', '/api/admin/login', { password: 'any_password' });
       assert.strictEqual(loginRes.status, 503);
     });
 
-    // Test 15: Hyphenated Render env var AURA-admin via bracket notation
-    await runAsyncTest('15. Admin login reads Render hyphenated env var AURA-admin dynamically', async () => {
+    // Enable Mock GitHub backend targeting aura-product
+    process.env.GITHUB_TOKEN = 'ghp_test_token_123';
+    process.env.GITHUB_OWNER = 'aura-org';
+    process.env.GITHUB_REPO = 'aura-store';
+    process.env.GITHUB_MAIN_BRANCH = 'main';
+    process.env.GITHUB_PRODUCT_BRANCH = 'aura-product';
+    process.env.GITHUB_API_BASE = `http://127.0.0.1:${ghPort}`;
+    process.env.GITHUB_RAW_BASE = `http://127.0.0.1:${ghPort}/raw`;
+    clearStoreCache();
+
+    // 2. Dynamic Admin Password Auth via Render hyphenated AURA-admin & underscore aliases + CSRF
+    let adminCookie = '';
+    let adminCsrf = '';
+
+    await runTest('2. Dynamic Admin Auth (AURA-admin, rotation, aliases) & CSRF enforcement', async () => {
       clearAdminEnv();
       process.env['AURA-admin'] = 'render-hyphen-secret-1';
 
-      const badRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'wrong-password' });
+      const badRes = await httpRequest(testPort, 'POST', '/api/admin/login', { password: 'wrong' });
       assert.strictEqual(badRes.status, 401);
 
-      const okRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
+      const okRes = await httpRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
       assert.strictEqual(okRes.status, 200);
       assert.strictEqual(okRes.body.success, true);
       assert.ok(okRes.body.csrfToken);
 
-      const setCookie = okRes.headers['set-cookie'] && okRes.headers['set-cookie'][0];
-      assert.ok(setCookie && setCookie.includes('aura_admin_session='));
-      const cookiePair = setCookie.split(';')[0];
+      // Rotate password without restarting server
+      process.env['AURA-admin'] = 'render-hyphen-secret-2';
+      const oldPwRes = await httpRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
+      assert.strictEqual(oldPwRes.status, 401);
 
-      const sessionRes = await httpJsonRequest(testPort, 'GET', '/api/admin/check-session', null, { Cookie: cookiePair });
-      assert.strictEqual(sessionRes.status, 200);
-      assert.strictEqual(sessionRes.body.authenticated, true);
+      const newPwRes = await httpRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-2' });
+      assert.strictEqual(newPwRes.status, 200);
+      const setCookie = newPwRes.headers['set-cookie'][0];
+      assert.ok(setCookie.includes('aura_admin_session='));
+      assert.ok(setCookie.includes('HttpOnly'));
+      adminCookie = setCookie.split(';')[0];
+      adminCsrf = newPwRes.body.csrfToken;
 
-      // CSRF enforcement on protected POST endpoint
-      const noCsrf = await httpJsonRequest(testPort, 'POST', '/api/admin/cancel-order', { orderId: 'AURA-2611-10001' }, { Cookie: cookiePair });
-      assert.strictEqual(noCsrf.status, 403);
-
-      const withCsrf = await httpJsonRequest(testPort, 'POST', '/api/admin/cancel-order', { orderId: 'AURA-2611-10001' }, {
-        Cookie: cookiePair,
-        'X-CSRF-Token': okRes.body.csrfToken
-      });
-      assert.strictEqual(withCsrf.status, 200);
-    });
-
-    // Test 16: Dynamic update without code edits or restart
-    await runAsyncTest('16. Updating process.env["AURA-admin"] takes effect immediately on next login', async () => {
-      clearAdminEnv();
-      process.env['AURA-admin'] = 'rotated-secret-v2';
-
-      const oldRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
-      assert.strictEqual(oldRes.status, 401);
-
-      const newRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'rotated-secret-v2' });
-      assert.strictEqual(newRes.status, 200);
-      assert.strictEqual(newRes.body.success, true);
-    });
-
-    // Test 17: Standard underscore aliases (AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD)
-    await runAsyncTest('17. Underscore admin password aliases (AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD) work dynamically', async () => {
+      // Test underscore aliases
       for (const alias of ['AURA_ADMIN_PASSWORD', 'AURA_ADMIN', 'ADMIN_PASSWORD']) {
         clearAdminEnv();
-        const secret = `secret-for-${alias}`;
-        process.env[alias] = secret;
-        const res = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: secret });
-        assert.strictEqual(res.status, 200, `Expected 200 for ${alias}`);
+        process.env[alias] = `alias-${alias}`;
+        const r = await httpRequest(testPort, 'POST', '/api/admin/login', { password: `alias-${alias}` });
+        assert.strictEqual(r.status, 200);
       }
+
+      // Restore primary
+      clearAdminEnv();
+      process.env['AURA-admin'] = 'render-hyphen-secret-2';
+
+      // Protected POST without CSRF rejected with 403; unauthenticated rejected with 401
+      const unauth = await httpRequest(testPort, 'GET', '/api/admin/bootstrap');
+      assert.strictEqual(unauth.status, 401);
+
+      const noCsrf = await httpRequest(testPort, 'POST', '/api/admin/settings', {}, { Cookie: adminCookie });
+      assert.strictEqual(noCsrf.status, 403);
+    });
+
+    // 3. Initial Live Storefront contains ZERO hardcoded demo products
+    await runTest('3. Storefront initializes clean with 0 demo products & default 30-day retention', async () => {
+      const sf = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sf.status, 200);
+      assert.strictEqual(sf.body.githubConfigured, true);
+      assert.strictEqual(sf.body.branch, 'aura-product');
+      assert.deepStrictEqual(sf.body.products, []);
+      assert.deepStrictEqual(sf.body.sizeGuides, []);
+      assert.strictEqual(sf.body.settings.deliveryFee, 100);
+      assert.strictEqual(sf.body.settings.freeShippingThreshold, 3000);
+      assert.strictEqual(sf.body.settings.recentlyViewedRetentionDays, 30);
+      assert.deepStrictEqual(sf.body.settings.coupons, []);
+    });
+
+    // 4. Image Upload auto-creates 'aura-product' branch & returns raw GitHub URL
+    let uploadedImageUrl = '';
+    await runTest('4. Admin image upload auto-creates aura-product branch and commits asset', async () => {
+      assert.strictEqual(ghState.branches['aura-product'], undefined);
+      const fakePngBase64 = 'data:image/png;base64,' + Buffer.from('PNG_BINARY_CONTENT').toString('base64');
+      const uploadRes = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/upload-image',
+        { fileName: 'hero_tee.png', base64Data: fakePngBase64 },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(uploadRes.status, 200);
+      assert.strictEqual(uploadRes.body.success, true);
+      assert.strictEqual(uploadRes.body.branch, 'aura-product');
+      assert.strictEqual(uploadRes.body.storage, 'github-aura-product');
+      assert.ok(uploadRes.body.path.startsWith('uploads/'));
+      assert.ok(uploadRes.body.url.includes('/aura-org/aura-store/aura-product/uploads/'));
+      assert.ok(ghState.branches['aura-product']);
+      assert.ok(ghState.filesByBranch['aura-product'].has(uploadRes.body.path));
+      uploadedImageUrl = uploadRes.body.url;
+    });
+
+    // 5. Admin Product CRUD syncs live with Storefront & hides unpublished items
+    await runTest('5. Admin product CRUD persists to aura-product products.json and syncs live to storefront', async () => {
+      const saveRes = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/products',
+        {
+          id: 'live-tee-01',
+          name: 'AURA MONOLITH TEE',
+          tagline: 'Custom 280 GSM Organic Cotton',
+          price: 1500,
+          originalPrice: 1850,
+          category: 'Tees',
+          image: uploadedImageUrl,
+          colors: [{ name: 'Onyx Black', hex: '#111111' }, { name: 'Bone', hex: '#f4f4f0' }],
+          sizes: ['M', 'L'],
+          stockPerSize: { M: 5, L: 3 },
+          published: true
+        },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(saveRes.status, 200);
+      assert.strictEqual(saveRes.body.product.id, 'live-tee-01');
+
+      const sf1 = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sf1.body.products.length, 1);
+      assert.strictEqual(sf1.body.products[0].image, uploadedImageUrl);
+
+      // Unpublish hides from public storefront but retains in admin bootstrap
+      await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/products',
+        { ...saveRes.body.product, published: false },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      const sfHidden = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sfHidden.body.products.length, 0);
+
+      const bootHidden = await httpRequest(testPort, 'GET', '/api/admin/bootstrap', null, { Cookie: adminCookie });
+      assert.strictEqual(bootHidden.body.products.length, 1);
+      assert.strictEqual(bootHidden.body.products[0].published, false);
+
+      // Re-publish for checkout tests
+      await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/products',
+        { ...saveRes.body.product, published: true },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+
+      // Create temporary product and delete it
+      await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/products',
+        {
+          id: 'temp-del-01',
+          name: 'TEMP ITEM',
+          price: 900,
+          sizes: ['M'],
+          stockPerSize: { M: 2 },
+          published: true
+        },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      const delRes = await httpRequest(
+        testPort,
+        'DELETE',
+        '/api/admin/products/temp-del-01',
+        null,
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(delRes.status, 200);
+      const sfAfterDel = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sfAfterDel.body.products.length, 1);
+    });
+
+    // 6. CMS Settings & Size Guides live persistence
+    await runTest('6. CMS Settings (including recentlyViewedRetentionDays & coupons) and Size Guides persist live', async () => {
+      const cmsRes = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/settings',
+        {
+          announcementBar: 'LIVE CAPSULE DROP — FREE SHIPPING OVER ৳3,500',
+          heroTitle: 'ARCHITECTURAL ESSENTIALS',
+          heroSubtitle: 'Live synced from GitHub aura-product',
+          deliveryFee: 120,
+          freeShippingThreshold: 3500,
+          recentlyViewedRetentionDays: 45,
+          availablePaymentMethods: ['Cash on Delivery'],
+          availableCouriers: ['Pathao Express', 'RedX Logistics'],
+          coupons: [{ code: 'AURA10', discountPercent: 10, minSpend: 1000, isFreeShipping: false }]
+        },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(cmsRes.status, 200);
+      assert.strictEqual(cmsRes.body.settings.recentlyViewedRetentionDays, 45);
+
+      const sgRes = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/size-guides',
+        {
+          id: 'sg-tees',
+          category: 'Tees',
+          columns: ['Chest', 'Length'],
+          rows: [{ size: 'M', values: ['118 cm', '75 cm'] }],
+          published: true
+        },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(sgRes.status, 200);
+
+      const sf = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sf.body.settings.deliveryFee, 120);
+      assert.strictEqual(sf.body.settings.recentlyViewedRetentionDays, 45);
+      assert.strictEqual(sf.body.settings.coupons.length, 1);
+      assert.strictEqual(sf.body.sizeGuides.length, 1);
+    });
+
+    // 7. Customer Checkout validation, multi-color stock aggregation, idempotency & sequential IDs
+    let firstOrderId = '';
+    await runTest('7. Checkout validates stock/bounds/couriers, aggregates stock by product+size, and enforces idempotency', async () => {
+      // Bad size rejected
+      const badSize = await httpRequest(testPort, 'POST', '/api/checkout', {
+        customerName: 'Nadia Rahman',
+        customerPhone: '01711111111',
+        shippingAddress: { street: 'House 12, Banani', city: 'Dhaka' },
+        courier: 'Pathao Express',
+        paymentMethod: 'Cash on Delivery',
+        items: [{ product_id: 'live-tee-01', size: 'XXXL', color: 'Onyx Black', quantity: 1 }]
+      });
+      assert.strictEqual(badSize.status, 400);
+
+      // Bad payment rejected
+      const badPm = await httpRequest(testPort, 'POST', '/api/checkout', {
+        customerName: 'Nadia Rahman',
+        customerPhone: '01711111111',
+        shippingAddress: { street: 'House 12, Banani', city: 'Dhaka' },
+        courier: 'Pathao Express',
+        paymentMethod: 'Bitcoin',
+        items: [{ product_id: 'live-tee-01', size: 'M', color: 'Onyx Black', quantity: 1 }]
+      });
+      assert.strictEqual(badPm.status, 400);
+
+      // Stock limit across two colors of same size (M has 5 in stock -> 3 Onyx + 3 Bone = 6 > 5 rejected)
+      const overStock = await httpRequest(testPort, 'POST', '/api/checkout', {
+        customerName: 'Nadia Rahman',
+        customerPhone: '01711111111',
+        shippingAddress: { street: 'House 12, Banani', city: 'Dhaka' },
+        courier: 'Pathao Express',
+        paymentMethod: 'Cash on Delivery',
+        items: [
+          { product_id: 'live-tee-01', size: 'M', color: 'Onyx Black', quantity: 3 },
+          { product_id: 'live-tee-01', size: 'M', color: 'Bone', quantity: 3 }
+        ]
+      });
+      assert.strictEqual(overStock.status, 400);
+      assert.ok(overStock.body.error.includes('Insufficient stock'));
+
+      // Valid multi-color checkout: 2 Onyx Black + 1 Bone in Size M = 3 units deducted from M (5 -> 2)
+      // Subtotal = 3 * 1500 = 4500 >= 3500 threshold => shipping = 0, AURA10 => discount = 450, total = 4050
+      const validPayload = {
+        idempotencyKey: 'idem_live_001',
+        customerName: 'Nadia Rahman',
+        customerPhone: '01711111111',
+        shippingAddress: { street: 'House 12, Banani', city: 'Dhaka' },
+        courier: 'Pathao Express',
+        paymentMethod: 'Cash on Delivery',
+        couponCode: 'AURA10',
+        items: [
+          { product_id: 'live-tee-01', size: 'M', color: 'Onyx Black', quantity: 2 },
+          { product_id: 'live-tee-01', size: 'M', color: 'Bone', quantity: 1 }
+        ]
+      };
+      const okOrder = await httpRequest(testPort, 'POST', '/api/checkout', validPayload);
+      assert.strictEqual(okOrder.status, 200);
+      assert.strictEqual(okOrder.body.success, true);
+      assert.ok(okOrder.body.order_id.endsWith('-10001'));
+      assert.strictEqual(okOrder.body.subtotal, 4500);
+      assert.strictEqual(okOrder.body.discount, 450);
+      assert.strictEqual(okOrder.body.shipping, 0);
+      assert.strictEqual(okOrder.body.total_amount, 4050);
+      firstOrderId = okOrder.body.order_id;
+
+      // Verify stock deducted in storefront
+      const sfAfterOrder = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sfAfterOrder.body.products[0].stockPerSize.M, 2);
+
+      // Replay same idempotencyKey + identical payload -> duplicate response, no extra stock deduction
+      const replay = await httpRequest(testPort, 'POST', '/api/checkout', validPayload);
+      assert.strictEqual(replay.status, 200);
+      assert.strictEqual(replay.body.is_duplicate, true);
+      assert.strictEqual(replay.body.order_id, firstOrderId);
+
+      // Replay same idempotencyKey + altered payload -> 409 conflict
+      const tampered = await httpRequest(testPort, 'POST', '/api/checkout', {
+        ...validPayload,
+        items: [{ product_id: 'live-tee-01', size: 'L', color: 'Onyx Black', quantity: 1 }]
+      });
+      assert.strictEqual(tampered.status, 409);
+
+      // Order lookup for customer tracking
+      const lookup = await httpRequest(testPort, 'POST', '/api/orders/lookup', { orderIds: [firstOrderId] });
+      assert.strictEqual(lookup.status, 200);
+      assert.strictEqual(lookup.body.orders.length, 1);
+      assert.strictEqual(lookup.body.orders[0].status, 'confirmed');
+    });
+
+    // 8. Admin Orders Ledger, Cancellation Idempotent Restock & Delivered Protection
+    await runTest('8. Admin cancel-order atomically restocks inventory once and blocks cancelling delivered orders', async () => {
+      const boot = await httpRequest(testPort, 'GET', '/api/admin/bootstrap', null, { Cookie: adminCookie });
+      assert.strictEqual(boot.status, 200);
+      assert.strictEqual(boot.body.orders.length, 1);
+      assert.strictEqual(boot.body.customers.length, 1);
+      assert.strictEqual(boot.body.customers[0].totalSpent, 4050);
+
+      // Cancel order -> restores Size M stock from 2 back to 5
+      const cancel1 = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/cancel-order',
+        { orderId: firstOrderId },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(cancel1.status, 200);
+      assert.strictEqual(cancel1.body.already_cancelled, false);
+
+      const sfRestocked = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sfRestocked.body.products[0].stockPerSize.M, 5);
+
+      // Repeat cancel -> idempotent, must NOT over-restock
+      const cancel2 = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/cancel-order',
+        { orderId: firstOrderId },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(cancel2.status, 200);
+      assert.strictEqual(cancel2.body.already_cancelled, true);
+      const sfStillFive = await httpRequest(testPort, 'GET', '/api/storefront');
+      assert.strictEqual(sfStillFive.body.products[0].stockPerSize.M, 5);
+
+      // Place second order -> Sequential ID increments to 10002 -> mark delivered -> cancellation blocked
+      const ord2 = await httpRequest(testPort, 'POST', '/api/checkout', {
+        idempotencyKey: 'idem_live_002',
+        customerName: 'Tariq Aziz',
+        customerPhone: '01822222222',
+        shippingAddress: { street: 'Road 4, Dhanmondi', city: 'Dhaka' },
+        courier: 'RedX Logistics',
+        paymentMethod: 'Cash on Delivery',
+        items: [{ product_id: 'live-tee-01', size: 'L', color: 'Onyx Black', quantity: 1 }]
+      });
+      assert.strictEqual(ord2.status, 200);
+      assert.ok(ord2.body.order_id.endsWith('-10002'));
+
+      const markDelivered = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/orders/status',
+        { orderId: ord2.body.order_id, status: 'delivered' },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(markDelivered.status, 200);
+
+      const cancelDelivered = await httpRequest(
+        testPort,
+        'POST',
+        '/api/admin/cancel-order',
+        { orderId: ord2.body.order_id },
+        { Cookie: adminCookie, 'X-CSRF-Token': adminCsrf }
+      );
+      assert.strictEqual(cancelDelivered.status, 400);
+      assert.ok(cancelDelivered.body.error.includes('Cannot cancel a delivered order'));
+    });
+
+    // 9. Recently Viewed Auto-Delete Retention & 20-Item Pruning Logic
+    await runTest('9. Recently Viewed retention auto-deletes expired entries (default 30 days) and caps at 20', async () => {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const prune = (items, retentionDays = 30) => {
+        const cutoff = now - retentionDays * dayMs;
+        return items
+          .filter(it => it && it.id && new Date(it.viewedAt).getTime() >= cutoff)
+          .slice(0, 20);
+      };
+
+      const sample = [
+        { id: 'fresh-1', viewedAt: new Date(now - 2 * dayMs).toISOString() },
+        { id: 'edge-29', viewedAt: new Date(now - 29 * dayMs).toISOString() },
+        { id: 'expired-31', viewedAt: new Date(now - 31 * dayMs).toISOString() },
+        { id: 'expired-90', viewedAt: new Date(now - 90 * dayMs).toISOString() }
+      ];
+
+      const kept30 = prune(sample, 30);
+      assert.deepStrictEqual(kept30.map(x => x.id), ['fresh-1', 'edge-29']);
+
+      const kept7 = prune(sample, 7);
+      assert.deepStrictEqual(kept7.map(x => x.id), ['fresh-1']);
+
+      const many = Array.from({ length: 25 }, (_, i) => ({
+        id: `p-${i}`,
+        viewedAt: new Date(now - i * 1000).toISOString()
+      }));
+      assert.strictEqual(prune(many, 30).length, 20);
+    });
+
+    // 10. Static Routes & Zero Supabase References in Served HTML
+    await runTest('10. Storefront (/) and Admin (/admin) HTML serve cleanly with zero Supabase references', async () => {
+      const home = await httpRequest(testPort, 'GET', '/');
+      assert.strictEqual(home.status, 200);
+      assert.ok(typeof home.body === 'string');
+      assert.strictEqual(/supabase/i.test(home.body), false);
+      assert.ok(home.body.includes('RECENTLY VIEWED') || home.body.includes('recordProductView'));
+
+      const idx = await httpRequest(testPort, 'GET', '/index.html');
+      assert.strictEqual(idx.status, 200);
+      assert.strictEqual(/supabase/i.test(idx.body), false);
+
+      const admin = await httpRequest(testPort, 'GET', '/admin');
+      assert.strictEqual(admin.status, 200);
+      assert.strictEqual(/supabase/i.test(admin.body), false);
+      assert.ok(admin.body.includes('aura-product'));
     });
   } finally {
-    for (const k of ADMIN_PASSWORD_ENV_KEYS) {
-      if (savedEnv[k] === undefined) {
-        delete process.env[k];
-      } else {
-        process.env[k] = savedEnv[k];
-      }
+    for (const k of envKeys) {
+      if (savedEnv[k] === undefined) delete process.env[k];
+      else process.env[k] = savedEnv[k];
     }
+    clearStoreCache();
     await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => ghServer.close(resolve));
   }
 
   console.log('\n================================================================');

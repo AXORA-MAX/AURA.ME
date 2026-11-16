@@ -1,11 +1,9 @@
 /**
- * AURA Fashion - Production Node.js Server
- * Integrates:
- * - Standalone Password-Only Admin Authentication with Timing-Safe comparison & Rate Limiting
- * - Encrypted HttpOnly Session Cookies with CSRF protection
- * - Protected /api/admin/* endpoints utilizing backend-only SUPABASE_SERVICE_ROLE_KEY
- * - Abuse-guarded /api/checkout proxy with rate limiting and payload fingerprint validation
- * - GitHub 'aura-data' branch public image committer with Supabase Storage fallback
+ * AURA Fashion — Production Node.js Server (GitHub 'aura-product' Storage Edition)
+ * - Standalone Password-Only Admin Authentication (dynamic process.env lookup including AURA-admin)
+ * - HttpOnly Session Cookies with CSRF protection
+ * - Live GitHub REST API storage targeting 'aura-product' branch (products.json, orders.json, settings.json, size-guides.json, uploads/*)
+ * - Abuse-guarded /api/checkout with server-side stock deduction & validation
  * - Dynamic process.env.PORT handling for Render deployment
  */
 
@@ -14,19 +12,32 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-let createClient = null;
-try {
-  ({ createClient } = require('@supabase/supabase-js'));
-} catch (e) {
-  console.warn('Optional @supabase/supabase-js dependency not installed locally:', e.message);
-}
+const {
+  getGitHubConfig,
+  uploadImageAsset,
+  GitHubConfigError,
+  GitHubApiError
+} = require('./lib/github-store');
+
+const {
+  ValidationError,
+  getStorefrontData,
+  getAdminBootstrapData,
+  upsertProduct,
+  deleteProduct,
+  updateSettings,
+  upsertSizeGuide,
+  deleteSizeGuide,
+  placeOrder,
+  lookupOrdersByIds,
+  updateOrderStatus
+} = require('./lib/store-service');
 
 // Render assigns process.env.PORT dynamically. In local container, nginx listens on 8080 and proxies to 3000.
 const PORT = (process.env.PORT && process.env.PORT !== '8080') ? parseInt(process.env.PORT, 10) : 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // Supported admin password environment variable names, evaluated dynamically per request.
-// Includes bracket-notation access for Render's hyphenated `AURA-admin` as well as underscore variants.
 const ADMIN_PASSWORD_ENV_KEYS = [
   'AURA-admin',
   'AURA_ADMIN_PASSWORD',
@@ -53,35 +64,10 @@ function getSessionSecret() {
   return (typeof secret === 'string' && secret.length > 0) ? secret : EPHEMERAL_SESSION_SECRET;
 }
 
-let cachedSupabaseAdminKey = '';
-let cachedSupabaseAdminClient = null;
-function getSupabaseAdmin() {
-  if (!createClient) return null;
-  const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) return null;
-
-  const cacheKey = `${url}::${serviceRoleKey}`;
-  if (cachedSupabaseAdminClient && cachedSupabaseAdminKey === cacheKey) {
-    return cachedSupabaseAdminClient;
-  }
-
-  try {
-    cachedSupabaseAdminClient = createClient(url, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false }
-    });
-    cachedSupabaseAdminKey = cacheKey;
-    return cachedSupabaseAdminClient;
-  } catch (e) {
-    console.warn('Supabase admin client initialization failed:', e.message);
-    return null;
-  }
-}
-
 // In-Memory Rate Limiting Cache
 const rateLimits = {
-  adminLogin: new Map(), // ip -> { count, resetAt }
-  checkout: new Map()    // ip -> { count, resetAt }
+  adminLogin: new Map(),
+  checkout: new Map()
 };
 
 function checkRateLimit(map, ip, maxAttempts, windowMs) {
@@ -99,7 +85,6 @@ function checkRateLimit(map, ip, maxAttempts, windowMs) {
   return true;
 }
 
-// Clean up old rate limit records every 10 minutes
 const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of rateLimits.adminLogin.entries()) {
@@ -111,10 +96,9 @@ const cleanupTimer = setInterval(() => {
 }, 600000);
 if (cleanupTimer.unref) cleanupTimer.unref();
 
-// Active Admin Sessions Cache (Synchronized with admin_sessions table if configured)
+// Active Admin Sessions Cache
 const activeAdminSessions = new Map(); // tokenHash -> { csrfToken, expiresAt, ip }
 
-// Helpers for Cookies & Parsing
 function parseCookies(req) {
   const list = {};
   const rc = req.headers.cookie;
@@ -156,7 +140,7 @@ function parseJsonBody(req) {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 5 * 1024 * 1024) {
+      if (body.length > 7 * 1024 * 1024) {
         reject(new Error('Payload too large'));
       }
     });
@@ -174,51 +158,34 @@ function parseJsonBody(req) {
 function sendJson(res, statusCode, data, headers = {}) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store',
     ...headers
   });
   res.end(JSON.stringify(data));
 }
 
-// Admin Session & CSRF Verification
-async function verifyAdminSession(req) {
+function handleError(res, err) {
+  if (err instanceof GitHubConfigError || err instanceof ValidationError || err instanceof GitHubApiError) {
+    return sendJson(res, err.statusCode || 400, { error: err.message });
+  }
+  const status = err && Number.isInteger(err.statusCode) ? err.statusCode : 500;
+  return sendJson(res, status, { error: (err && err.message) || 'Internal server error' });
+}
+
+function verifyAdminSession(req) {
   const cookies = parseCookies(req);
   const sessionToken = cookies['aura_admin_session'];
   if (!sessionToken) return false;
 
   const tokenHash = crypto.createHash('sha256').update(sessionToken + getSessionSecret()).digest('hex');
-  const now = Date.now();
-
   const memSession = activeAdminSessions.get(tokenHash);
-  if (memSession) {
-    if (now > memSession.expiresAt) {
-      activeAdminSessions.delete(tokenHash);
-      return false;
-    }
-    return { tokenHash, csrfToken: memSession.csrfToken };
+  if (!memSession) return false;
+
+  if (Date.now() > memSession.expiresAt) {
+    activeAdminSessions.delete(tokenHash);
+    return false;
   }
-
-  // If supabaseAdmin configured, check admin_sessions table
-  const adminDb = getSupabaseAdmin();
-  if (adminDb) {
-    const { data, error } = await adminDb
-      .from('admin_sessions')
-      .select('*')
-      .eq('session_token_hash', tokenHash)
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (data && !error) {
-      activeAdminSessions.set(tokenHash, {
-        csrfToken: data.csrf_token,
-        expiresAt: new Date(data.expires_at).getTime(),
-        ip: data.ip_address
-      });
-      return { tokenHash, csrfToken: data.csrf_token };
-    }
-  }
-
-  return false;
+  return { tokenHash, csrfToken: memSession.csrfToken };
 }
 
 function verifyCsrfToken(req, adminSession) {
@@ -226,7 +193,19 @@ function verifyCsrfToken(req, adminSession) {
   return typeof provided === 'string' && timingSafeCompare(provided, adminSession.csrfToken);
 }
 
-// MIME Types for Static Delivery
+function requireAdminAuth(req, res, { checkCsrf = false } = {}) {
+  const adminSession = verifyAdminSession(req);
+  if (!adminSession) {
+    sendJson(res, 401, { error: 'Unauthorized. Admin session required.' });
+    return null;
+  }
+  if (checkCsrf && !verifyCsrfToken(req, adminSession)) {
+    sendJson(res, 403, { error: 'Invalid or missing CSRF token.' });
+    return null;
+  }
+  return adminSession;
+}
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -246,38 +225,98 @@ const MIME_TYPES = {
 const server = http.createServer(async (req, res) => {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
-  // Security Headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // Health Check Endpoint
-  if (req.url === '/health' && req.method === 'GET') {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+
+  if (pathname === '/health' && req.method === 'GET') {
+    const gh = getGitHubConfig();
     return sendJson(res, 200, {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'aura-fashion-server',
+      storage: 'github',
+      branch: gh.productBranch,
       adminAuthConfigured: Boolean(getConfiguredAdminPassword()),
-      supabaseConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+      githubConfigured: gh.configured
     });
   }
 
-  // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
-      'Access-Control-Allow-Credentials': 'true'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token'
     });
     return res.end();
   }
 
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
+  // ==========================================================================
+  // PUBLIC STOREFRONT API (Reads directly from GitHub 'aura-product' branch)
+  // ==========================================================================
+  if (pathname === '/api/storefront' && req.method === 'GET') {
+    try {
+      const gh = getGitHubConfig();
+      if (!gh.configured) {
+        return sendJson(res, 503, {
+          error: 'GitHub storage is not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables.',
+          githubConfigured: false,
+          products: [],
+          sizeGuides: []
+        });
+      }
+      const data = await getStorefrontData();
+      return sendJson(res, 200, { ...data, githubConfigured: true, branch: gh.productBranch });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname === '/api/orders/lookup' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const orders = await lookupOrdersByIds(body.orderIds || []);
+      return sendJson(res, 200, { orders });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname === '/api/checkout' && req.method === 'POST') {
+    if (!checkRateLimit(rateLimits.checkout, clientIp, 15, 15 * 60 * 1000)) {
+      return sendJson(res, 429, { error: 'Checkout rate limit reached. Please wait before retrying.' });
+    }
+
+    try {
+      const body = await parseJsonBody(req);
+
+      if (process.env.TURNSTILE_SECRET_KEY && body.captchaToken) {
+        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            secret: process.env.TURNSTILE_SECRET_KEY,
+            response: body.captchaToken,
+            remoteip: clientIp
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyData.success) {
+          return sendJson(res, 400, { error: 'CAPTCHA challenge failed. Please try again.' });
+        }
+      }
+
+      const result = await placeOrder(body);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
 
   // ==========================================================================
-  // API ROUTE 1: Standalone Password-Only Admin Login
+  // ADMIN AUTHENTICATION ROUTES
   // ==========================================================================
   if (pathname === '/api/admin/login' && req.method === 'POST') {
     const configured = getConfiguredAdminPassword();
@@ -299,34 +338,21 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 401, { error: 'Invalid administrator password.' });
       }
 
-      // Reset brute-force counter upon successful authentication
       rateLimits.adminLogin.delete(clientIp);
 
-      // Generate cryptographically secure tokens
       const sessionToken = crypto.randomBytes(32).toString('hex');
       const tokenHash = crypto.createHash('sha256').update(sessionToken + getSessionSecret()).digest('hex');
       const csrfToken = crypto.randomBytes(24).toString('hex');
-      const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+      const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       activeAdminSessions.set(tokenHash, { csrfToken, expiresAt, ip: clientIp });
-
-      const adminDb = getSupabaseAdmin();
-      if (adminDb) {
-        await adminDb.from('admin_sessions').insert({
-          session_token_hash: tokenHash,
-          csrf_token: csrfToken,
-          ip_address: clientIp,
-          user_agent: req.headers['user-agent'] || 'Admin Browser',
-          expires_at: new Date(expiresAt).toISOString()
-        }).catch(err => console.warn('Could not persist admin_sessions to DB:', err.message));
-      }
 
       const isSecure = isRequestSecure(req);
       const cookieHeader = `aura_admin_session=${sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${isSecure ? '; Secure' : ''}`;
 
       return sendJson(res, 200, {
         success: true,
-        csrfToken: csrfToken,
+        csrfToken,
         message: 'Administrator session established successfully.'
       }, {
         'Set-Cookie': cookieHeader
@@ -336,17 +362,10 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ==========================================================================
-  // API ROUTE 2: Admin Logout
-  // ==========================================================================
   if (pathname === '/api/admin/logout' && req.method === 'POST') {
-    const adminSession = await verifyAdminSession(req);
+    const adminSession = verifyAdminSession(req);
     if (adminSession) {
       activeAdminSessions.delete(adminSession.tokenHash);
-      const adminDb = getSupabaseAdmin();
-      if (adminDb) {
-        await adminDb.from('admin_sessions').delete().eq('session_token_hash', adminSession.tokenHash).catch(() => {});
-      }
     }
     const isSecure = isRequestSecure(req);
     return sendJson(res, 200, { success: true }, {
@@ -354,11 +373,8 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // ==========================================================================
-  // API ROUTE 3: Admin Session Verification Check
-  // ==========================================================================
   if (pathname === '/api/admin/check-session' && req.method === 'GET') {
-    const adminSession = await verifyAdminSession(req);
+    const adminSession = verifyAdminSession(req);
     if (!adminSession) {
       return sendJson(res, 401, { authenticated: false });
     }
@@ -366,254 +382,126 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ==========================================================================
-  // API ROUTE 4: Abuse-Guarded Checkout Proxy (/api/checkout)
+  // PROTECTED ADMIN DATA ROUTES (GitHub 'aura-product' Branch)
   // ==========================================================================
-  if (pathname === '/api/checkout' && req.method === 'POST') {
-    if (!checkRateLimit(rateLimits.checkout, clientIp, 10, 15 * 60 * 1000)) {
-      return sendJson(res, 429, { error: 'Checkout rate limit reached. Please wait before retrying.' });
-    }
-
+  if (pathname === '/api/admin/bootstrap' && req.method === 'GET') {
+    if (!requireAdminAuth(req, res)) return;
     try {
-      const authHeader = req.headers['authorization'];
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return sendJson(res, 401, { error: 'Authentication required. No active session.' });
-      }
-      const token = authHeader.split(' ')[1];
-
-      const body = await parseJsonBody(req);
-
-      // Verify CAPTCHA / Turnstile token if configured
-      if (process.env.TURNSTILE_SECRET_KEY && body.captchaToken) {
-        try {
-          const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              secret: process.env.TURNSTILE_SECRET_KEY,
-              response: body.captchaToken,
-              remoteip: clientIp
-            })
-          });
-          const verifyData = await verifyRes.json();
-          if (!verifyData.success) {
-            return sendJson(res, 400, { error: 'CAPTCHA challenge failed. Please try again.' });
-          }
-        } catch (captchaErr) {
-          console.warn('Captcha verification error:', captchaErr.message);
-        }
-      }
-
-      // Canonical SHA-256 Payload Fingerprint
-      const canonicalPayload = JSON.stringify({
-        items: body.items,
-        name: body.customerName,
-        phone: body.customerPhone,
-        address: body.shippingAddress,
-        courier: body.courier,
-        paymentMethod: body.paymentMethod,
-        couponCode: body.couponCode
+      const gh = getGitHubConfig();
+      const data = await getAdminBootstrapData();
+      return sendJson(res, 200, {
+        ...data,
+        githubConfigured: gh.configured,
+        branch: gh.productBranch,
+        repo: `${gh.owner}/${gh.repo}`
       });
-      const payloadFingerprint = crypto.createHash('sha256').update(canonicalPayload).digest('hex');
-
-      // Forward with User's JWT Context
-      const supabaseUrl = process.env.SUPABASE_URL;
-      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-      if (createClient && supabaseUrl && supabaseAnonKey) {
-        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: { Authorization: `Bearer ${token}` } }
-        });
-
-        const { data, error } = await userClient.rpc('place_order_atomic', {
-          p_idempotency_key: body.idempotencyKey,
-          p_payload_fingerprint: payloadFingerprint,
-          p_customer_name: body.customerName,
-          p_customer_email: body.customerEmail || null,
-          p_customer_phone: body.customerPhone,
-          p_shipping_address: body.shippingAddress,
-          p_courier: body.courier || 'Pathao Express',
-          p_payment_method: body.paymentMethod || 'Cash on Delivery',
-          p_coupon_code: body.couponCode || null,
-          p_items: body.items
-        });
-
-        if (error) {
-          return sendJson(res, 400, { error: error.message });
-        }
-        return sendJson(res, 200, data);
-      } else {
-        // Fallback simulation when Supabase credentials are in test mode
-        return sendJson(res, 200, {
-          success: true,
-          order_id: 'AURA-2611-10001',
-          total_amount: 1390,
-          subtotal: 1290,
-          discount: 0,
-          shipping: 100,
-          is_mock: false
-        });
-      }
     } catch (err) {
-      return sendJson(res, 400, { error: err.message });
+      return handleError(res, err);
     }
   }
 
-  // ==========================================================================
-  // API ROUTE 5: Protected Admin Order Cancellation (/api/admin/cancel-order)
-  // ==========================================================================
+  if (pathname === '/api/admin/products' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const body = await parseJsonBody(req);
+      const saved = await upsertProduct(body);
+      return sendJson(res, 200, { success: true, product: saved });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname.startsWith('/api/admin/products/') && req.method === 'DELETE') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const productId = decodeURIComponent(pathname.slice('/api/admin/products/'.length));
+      const result = await deleteProduct(productId);
+      return sendJson(res, 200, { success: true, ...result });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname === '/api/admin/orders/status' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const body = await parseJsonBody(req);
+      const result = await updateOrderStatus({
+        orderId: body.orderId,
+        newStatus: body.status,
+        trackingId: body.trackingId,
+        adminNotes: body.adminNotes
+      });
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
   if (pathname === '/api/admin/cancel-order' && req.method === 'POST') {
-    const adminSession = await verifyAdminSession(req);
-    if (!adminSession) {
-      return sendJson(res, 401, { error: 'Unauthorized. Admin session required.' });
-    }
-    if (!verifyCsrfToken(req, adminSession)) {
-      return sendJson(res, 403, { error: 'Invalid or missing CSRF token.' });
-    }
-
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
     try {
       const body = await parseJsonBody(req);
-      const { orderId, adminNotes } = body;
-
-      if (!orderId) {
-        return sendJson(res, 400, { error: 'Order ID is required' });
-      }
-
-      const adminDb = getSupabaseAdmin();
-      if (adminDb) {
-        const { data, error } = await adminDb.rpc('cancel_order_atomic', {
-          p_order_id: orderId,
-          p_admin_notes: adminNotes || 'Cancelled via Admin Portal'
-        });
-
-        if (error) {
-          return sendJson(res, 400, { error: error.message });
-        }
-        return sendJson(res, 200, data);
-      } else {
-        return sendJson(res, 200, { success: true, order_id: orderId, message: 'Order cancelled' });
-      }
+      const result = await updateOrderStatus({
+        orderId: body.orderId,
+        newStatus: 'cancelled',
+        adminNotes: body.adminNotes || 'Cancelled via Admin Portal'
+      });
+      return sendJson(res, 200, result);
     } catch (err) {
-      return sendJson(res, 400, { error: err.message });
+      return handleError(res, err);
     }
   }
 
-  // ==========================================================================
-  // API ROUTE 6: Protected GitHub 'aura-data' Image Uploader
-  // ==========================================================================
-  if (pathname === '/api/admin/upload-image' && req.method === 'POST') {
-    const adminSession = await verifyAdminSession(req);
-    if (!adminSession) {
-      return sendJson(res, 401, { error: 'Unauthorized. Admin session required.' });
-    }
-    if (!verifyCsrfToken(req, adminSession)) {
-      return sendJson(res, 403, { error: 'Invalid or missing CSRF token.' });
-    }
-
+  if (pathname === '/api/admin/settings' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
     try {
       const body = await parseJsonBody(req);
-      const { fileName, base64Data } = body;
-
-      if (!fileName || !base64Data) {
-        return sendJson(res, 400, { error: 'fileName and base64Data are required' });
-      }
-
-      const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
-      const fileBuffer = Buffer.from(cleanBase64, 'base64');
-      const timestamp = Date.now();
-      const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const assetPath = `public/uploads/${timestamp}-${sanitizedName}`;
-
-      const githubToken = process.env.GITHUB_TOKEN;
-      const githubOwner = process.env.GITHUB_OWNER;
-      const githubRepo = process.env.GITHUB_REPO;
-      const dataBranch = process.env.GITHUB_DATA_BRANCH || 'aura-data';
-      const mainBranch = process.env.GITHUB_MAIN_BRANCH || 'main';
-
-      if (githubToken && githubOwner && githubRepo) {
-        try {
-          // Check if dataBranch exists
-          const branchRes = await fetch(`https://api.github.com/repos/${githubOwner}/${githubRepo}/branches/${dataBranch}`, {
-            headers: {
-              'Authorization': `Bearer ${githubToken}`,
-              'User-Agent': 'AURA-Fashion-App'
-            }
-          });
-
-          if (branchRes.status === 404) {
-            // Get SHA of main branch
-            const mainRes = await fetch(`https://api.github.com/repos/${githubOwner}/${githubRepo}/git/ref/heads/${mainBranch}`, {
-              headers: { 'Authorization': `Bearer ${githubToken}`, 'User-Agent': 'AURA-Fashion-App' }
-            });
-            const mainData = await mainRes.json();
-            const mainSha = mainData.object.sha;
-
-            // Create aura-data branch
-            await fetch(`https://api.github.com/repos/${githubOwner}/${githubRepo}/git/refs`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${githubToken}`, 'User-Agent': 'AURA-Fashion-App', 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ref: `refs/heads/${dataBranch}`, sha: mainSha })
-            });
-          }
-
-          // Commit file to aura-data branch
-          const commitRes = await fetch(`https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${assetPath}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${githubToken}`,
-              'User-Agent': 'AURA-Fashion-App',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: `Upload asset ${sanitizedName} via AURA Admin`,
-              content: cleanBase64,
-              branch: dataBranch
-            })
-          });
-
-          if (commitRes.ok) {
-            const rawUrl = `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/${dataBranch}/${assetPath}`;
-            return sendJson(res, 200, { success: true, url: rawUrl, storage: 'github-aura-data' });
-          }
-        } catch (ghErr) {
-          console.warn('GitHub aura-data commit failed, falling back:', ghErr.message);
-        }
-      }
-
-      // Supabase Storage Fallback
-      const adminDb = getSupabaseAdmin();
-      if (adminDb) {
-        const { data, error } = await adminDb.storage
-          .from('aura-assets')
-          .upload(`${timestamp}-${sanitizedName}`, fileBuffer, {
-            contentType: 'image/jpeg',
-            upsert: true
-          });
-
-        if (!error && data) {
-          const { data: publicData } = adminDb.storage
-            .from('aura-assets')
-            .getPublicUrl(data.path);
-
-          return sendJson(res, 200, { success: true, url: publicData.publicUrl, storage: 'supabase-storage' });
-        }
-      }
-
-      // Local disk fallback for development
-      const localUploadDir = path.join(PUBLIC_DIR, 'uploads');
-      if (!fs.existsSync(localUploadDir)) fs.mkdirSync(localUploadDir, { recursive: true });
-      const localFilePath = path.join(localUploadDir, `${timestamp}-${sanitizedName}`);
-      fs.writeFileSync(localFilePath, fileBuffer);
-      return sendJson(res, 200, { success: true, url: `/uploads/${timestamp}-${sanitizedName}`, storage: 'local-disk' });
+      const settings = await updateSettings(body);
+      return sendJson(res, 200, { success: true, settings });
     } catch (err) {
-      return sendJson(res, 500, { error: err.message });
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname === '/api/admin/size-guides' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const body = await parseJsonBody(req);
+      const sizeGuide = await upsertSizeGuide(body);
+      return sendJson(res, 200, { success: true, sizeGuide });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname.startsWith('/api/admin/size-guides/') && req.method === 'DELETE') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const guideId = decodeURIComponent(pathname.slice('/api/admin/size-guides/'.length));
+      const result = await deleteSizeGuide(guideId);
+      return sendJson(res, 200, { success: true, ...result });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  if (pathname === '/api/admin/upload-image' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res, { checkCsrf: true })) return;
+    try {
+      const body = await parseJsonBody(req);
+      const result = await uploadImageAsset(body.fileName, body.base64Data);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return handleError(res, err);
     }
   }
 
   // ==========================================================================
   // STATIC FILE SERVING
   // ==========================================================================
-  let safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+  const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
 
-  // Handle admin route
   if (safePath === '/admin' || safePath === '/admin.html') {
     const adminPath = path.join(__dirname, 'admin.html');
     if (fs.existsSync(adminPath)) {
@@ -622,26 +510,24 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Check public/
-  let filePath = path.join(PUBLIC_DIR, safePath);
+  const filePath = path.join(PUBLIC_DIR, safePath);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
     return fs.createReadStream(filePath).pipe(res);
   }
 
-  // Check root
-  let rootFilePath = path.join(__dirname, safePath);
+  const rootFilePath = path.join(__dirname, safePath);
   if (fs.existsSync(rootFilePath) && fs.statSync(rootFilePath).isFile()) {
     const ext = path.extname(rootFilePath).toLowerCase();
     res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
     return fs.createReadStream(rootFilePath).pipe(res);
   }
 
-  // Default SPA fallback: index.html
-  const publicIndex = path.join(PUBLIC_DIR, 'index.html');
+  // Default SPA fallback: root index.html (prefer root index.html so edits are single-source)
   const rootIndex = path.join(__dirname, 'index.html');
-  const targetIndex = fs.existsSync(publicIndex) ? publicIndex : rootIndex;
+  const publicIndex = path.join(PUBLIC_DIR, 'index.html');
+  const targetIndex = fs.existsSync(rootIndex) ? rootIndex : publicIndex;
 
   if (fs.existsSync(targetIndex)) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -654,10 +540,14 @@ const server = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   if (!getConfiguredAdminPassword()) {
-    console.warn('[AURA] Warning: No admin password environment variable set (checked AURA-admin, AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD). Admin login will fail closed with HTTP 503 until configured.');
+    console.warn('[AURA] Warning: No admin password environment variable set (checked AURA-admin, AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD). Admin login will return HTTP 503 until configured.');
+  }
+  const gh = getGitHubConfig();
+  if (!gh.configured) {
+    console.warn('[AURA] Warning: GitHub storage env vars (GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO) are not set. Storefront/Admin data endpoints will return HTTP 503 until configured.');
   }
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`AURA Production Server running on port ${PORT}`);
+    console.log(`AURA Production Server running on port ${PORT} (GitHub branch: ${gh.productBranch})`);
   });
 }
 

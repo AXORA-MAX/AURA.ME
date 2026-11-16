@@ -1,6 +1,29 @@
 node_modules
+node_modules/
 .env
 *.log
 .DS_Store
+local.properties
+
+# Android / Gradle build outputs & caches
+.gradle
+.gradle/
+.kotlin
+.kotlin/
+build
+build/
+app/build
+app/build/
+.build-outputs
+.build-outputs/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# AI Studio workspace artifacts
+.aistudio
+.aistudio/
+
 backups/*.json
 !backups/.gitkeep

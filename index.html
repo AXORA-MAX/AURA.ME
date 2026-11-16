@@ -1034,18 +1034,12 @@ img {
 
 </style>
 
-  <!-- Supabase JS Client v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
   <!-- Top Announcement Bar -->
-  <div class="promo-bar">
-    <span>DROP 04 : MONOLITH CAPSULE NOW LIVE</span>
-    <span>•</span>
-    <span>COMPLIMENTARY EXPRESS DELIVERY OVER <strong class="accent">৳3,000</strong></span>
-    <span>•</span>
-    <span>USE CODE <strong class="accent">AURA10</strong> FOR 10% OFF</span>
+  <div class="promo-bar" id="promo-bar">
+    <span>DROP 04 : MONOLITH CAPSULE NOW LIVE — COMPLIMENTARY EXPRESS DELIVERY OVER <strong class="accent">৳3,000</strong></span>
   </div>
 
   <!-- Site Header -->
@@ -1239,450 +1233,43 @@ img {
   <!-- Application Logic -->
   <script>
 // ==========================================
-// SUPABASE CLIENT & AUTHENTICATION ENGINE
+// AURA LIVE STOREFRONT ENGINE (GitHub 'aura-product' Branch)
 // ==========================================
-const SUPABASE_URL = window.AURA_SUPABASE_URL || "https://aura-placeholder.supabase.co";
-const SUPABASE_ANON_KEY = window.AURA_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder";
 
-let supabase = null;
-try {
-  if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes("placeholder")) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log("AURA Supabase initialized successfully");
-  }
-} catch (e) {
-  console.warn("Supabase initialization notice (offline mode active):", e.message);
-}
-
-// Ensure Anonymous Auth Session for Guest Operations
-async function ensureAuthSession() {
-  if (!supabase) return null;
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      window.AURA_STATE.user = session.user;
-      return session;
-    }
-    // Sign in anonymously for guest shoppers
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (!error && data.session) {
-      window.AURA_STATE.user = data.session.user;
-      return data.session;
-    }
-  } catch (err) {
-    console.warn("Auth session check notice:", err.message);
-  }
-  return null;
-}
-
-// Recently Viewed Products Logger (Max 20 with duplicate prevention)
-async function recordProductView(product) {
-  if (!product || !product.id) return;
-  // Local cache update
-  let views = JSON.parse(localStorage.getItem(aura_recently_viewed) || []);
-  views = views.filter(v => v.id !== product.id);
-  views.unshift({
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    image: product.image,
-    category: product.category,
-    viewedAt: new Date().toISOString()
-  });
-  if (views.length > 20) views = views.slice(0, 20);
-  localStorage.setItem(aura_recently_viewed, JSON.stringify(views));
-
-  // Sync to Supabase if session active
-  if (supabase) {
-    try {
-      const session = await ensureAuthSession();
-      if (session && session.user) {
-        await supabase.from(recently_viewed).upsert({
-          user_id: session.user.id,
-          product_id: product.id,
-          viewed_at: new Date().toISOString()
-        }, { onConflict: user_id,product_id });
-      }
-    } catch (e) {
-      console.warn("Could not sync recently_viewed:", e.message);
-    }
-  }
-}
-
-// Size Guide Modal Toggle
-function toggleSizeGuide(open, category) {
-  const modal = document.getElementById(size-guide-modal);
-  if (!modal) return;
-  if (open) {
-    modal.style.display = flex;
-  } else {
-    modal.style.display = none;
-  }
-}
-
-// Account Linking for Guests Upgrading to Registered Members
-async function handleAccountUpgrade(email, password, fullName) {
-  if (!supabase) return { error: "Supabase not connected" };
-  try {
-    // If currently anonymous, link identity or sign up
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } }
-    });
-    if (error) return { error: error.message };
-    window.AURA_STATE.user = data.user;
-    showToast("AURA Account Registered Successfully!");
-    return { success: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-const defaultProducts = [
-  {
-    id: "aura-p1",
-    name: "AURA OVERSIZED TEE",
-    tagline: "Heavyweight cotton boxy cut with dropped shoulders",
-    price: 1290,
-    originalPrice: 1590,
-    category: "Tees",
-    style: "Oversized",
-    rating: 4.9,
-    reviewCount: 84,
-    colors: [
-      { name: "Onyx Black", hex: "#111111" },
-      { name: "Chalk White", hex: "#F5F5F5" },
-      { name: "Heather Grey", hex: "#8E8E93" }
-    ],
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    stockPerSize: { S: 14, M: 22, L: 16, XL: 7, XXL: 3 },
-    description: "The cornerstone of the AURA silhouette. Cut from custom-milled 280 GSM combed organic cotton, this oversized tee features a thick 1.25\" rib collar, double-needle cover-stitched seams, and an effortless drop shoulder drape that retains structure wash after wash.",
-    fabric: "100% Combed Organic Cotton (280 GSM French Jersey)",
-    fit: "Oversized Boxy drape. Size down for true-to-size look.",
-    care: "Machine wash cold inside out with like colors. Air dry.",
-    image: "/assets/img_hero_fashion.jpg",
-    badge: "Bestseller",
-    isNew: true,
-    isDrop: false,
-    isFeatured: true,
-    published: true
-  },
-  {
-    id: "aura-p2",
-    name: "AURA CARGO TROUSERS",
-    tagline: "Modular pleated cargo with bungee drawstring cuffs",
-    price: 2490,
-    originalPrice: 2890,
-    category: "Pants",
-    style: "Streetwear",
-    rating: 4.8,
-    reviewCount: 59,
-    colors: [
-      { name: "Onyx Black", hex: "#111111" },
-      { name: "Desert Sand", hex: "#D8C7B5" }
-    ],
-    sizes: ["S", "M", "L", "XL"],
-    stockPerSize: { S: 8, M: 12, L: 6, XL: 2 },
-    description: "Crafted from durable water-repellent ripstop cotton blend, our technical cargo features articulated knee darting, magnetic pocket flaps, and adjustable bungee toggles at the ankles for customizable silhouette transitions.",
-    fabric: "Cotton-Poly Ripstop (260 GSM) with matte Teflon finish",
-    fit: "Relaxed tapered fit with ankle cinch cords.",
-    care: "Hand or delicate machine wash. Iron on reverse.",
-    image: "/assets/img_complete_look.jpg",
-    badge: "New Drop",
-    isNew: false,
-    isDrop: true,
-    isFeatured: true,
-    published: true
-  },
-  {
-    id: "aura-p3",
-    name: "AURA SHADOW HOODIE",
-    tagline: "450 GSM French Terry heavyweight architectural hoodie",
-    price: 3290,
-    originalPrice: 3800,
-    category: "Hoodies",
-    style: "Premium",
-    rating: 5.0,
-    reviewCount: 112,
-    colors: [
-      { name: "Onyx Black", hex: "#111111" },
-      { name: "Heather Grey", hex: "#8E8E93" },
-      { name: "Midnight Navy", hex: "#1B263B" }
-    ],
-    sizes: ["S", "M", "L", "XL"],
-    stockPerSize: { S: 6, M: 14, L: 8, XL: 4 },
-    description: "Engineered for maximum presence. Constructed with double-lined hood with zero drawstrings for pure minimalist luxury lines, kangaroo pouch with concealed zip key slot, and pre-shrunk heavyweight loopback terry.",
-    fabric: "450 GSM Ultra-Heavyweight French Terry",
-    fit: "Structured Boxy Fit with wide body & snug waist rib.",
-    care: "Dry clean or cold hand wash. Lay flat to dry.",
-    image: "/assets/img_lookbook_urban.jpg",
-    badge: "App Exclusive",
-    isNew: true,
-    isDrop: true,
-    isFeatured: true,
-    published: true
-  },
-  {
-    id: "aura-p4",
-    name: "AURA MATTE MINIMAL PENDANT",
-    tagline: "Surgical grade 316L stainless steel geometric necklace",
-    price: 890,
-    originalPrice: 1150,
-    category: "Accessories",
-    style: "Premium",
-    rating: 4.7,
-    reviewCount: 38,
-    colors: [
-      { name: "Onyx Black", hex: "#111111" },
-      { name: "Silver", hex: "#E2E8F0" }
-    ],
-    sizes: ["One Size"],
-    stockPerSize: { "One Size": 25 },
-    description: "Subtle modern luxury accent. Laser engraved with the AURA. coordinates and finished in brushed matte graphite PVD coating resistant to tarnishing and sweat.",
-    fabric: "316L Solid Stainless Steel with PVD Matte Coating",
-    fit: "55cm curb chain with 5cm extension clasp.",
-    care: "Wipe with micro-fiber cloth. Waterproof.",
-    image: "/assets/img_app_icon.jpg",
-    badge: "Hardware",
-    isNew: false,
-    isDrop: false,
-    isFeatured: false,
-    published: true
-  },
-  {
-    id: "aura-p5",
-    name: "AURA RELAXED LINEN-TOUCH SHIRT",
-    tagline: "Camp collar breathable leisure shirt for warm evenings",
-    price: 1890,
-    originalPrice: 2200,
-    category: "Men",
-    style: "Relaxed",
-    rating: 4.6,
-    reviewCount: 27,
-    colors: [
-      { name: "Chalk White", hex: "#F5F5F5" },
-      { name: "Desert Sand", hex: "#D8C7B5" }
-    ],
-    sizes: ["S", "M", "L", "XL"],
-    stockPerSize: { S: 10, M: 15, L: 9, XL: 3 },
-    description: "Clean silhouette with an open Cuban camp collar, mother-of-pearl buttons, and lightweight textured linen blend for effortless tropical and summer vibes.",
-    fabric: "65% Linen, 35% Modal (170 GSM)",
-    fit: "Relaxed breezy fit with straight hem and side slits.",
-    care: "Cold delicate wash. Low iron when damp.",
-    image: "/assets/img_complete_look.jpg",
-    badge: "Summer Capsule",
-    isNew: true,
-    isDrop: false,
-    isFeatured: false,
-    published: true
-  },
-  {
-    id: "aura-p6",
-    name: "AURA SCULPTED CROPPED BOMBER",
-    tagline: "Cropped insulated bomber with high-density silver hardware",
-    price: 3990,
-    originalPrice: 4500,
-    category: "Unisex",
-    style: "Streetwear",
-    rating: 4.9,
-    reviewCount: 43,
-    colors: [
-      { name: "Onyx Black", hex: "#111111" },
-      { name: "Midnight Navy", hex: "#1B263B" }
-    ],
-    sizes: ["S", "M", "L"],
-    stockPerSize: { S: 5, M: 7, L: 3 },
-    description: "A statement silhouette featuring exaggerated dropped sleeves, custom chunky two-way front zip, thermal orange interior lining, and storm flap closure.",
-    fabric: "Nylon Twill with 80g Primaloft Eco Insulation",
-    fit: "Cropped length with voluminous articulated sleeves.",
-    care: "Specialist spot clean or professional dry clean.",
-    image: "/assets/img_lookbook_urban.jpg",
-    badge: "Limited Drop",
-    isNew: false,
-    isDrop: true,
-    isFeatured: true,
-    published: true
-  }
-];
-
-// Active State Cache
 window.AURA_STATE = {
-  products: [...defaultProducts],
+  loading: true,
+  storeError: null,
+  githubConfigured: false,
+  products: [],
+  sizeGuides: [],
+  settings: {
+    announcementBar: 'DROP 04 : MONOLITH CAPSULE NOW LIVE — COMPLIMENTARY EXPRESS DELIVERY OVER ৳3,000',
+    heroTitle: 'GIVES YOU DIFFERENT VIBE',
+    heroSubtitle: 'Architectural cuts, heavyweight 280 GSM custom French terry, and relaxed luxury silhouettes engineered in Dhaka for global presence.',
+    deliveryFee: 100,
+    freeShippingThreshold: 3000,
+    recentlyViewedRetentionDays: 30,
+    availablePaymentMethods: ['Cash on Delivery', 'bKash Online Payment'],
+    availableCouriers: ['Pathao Express', 'RedX Logistics', 'Steadfast Courier'],
+    coupons: []
+  },
   cart: JSON.parse(localStorage.getItem('aura_cart') || '[]'),
-  wishlist: JSON.parse(localStorage.getItem('aura_wishlist') || '["aura-p1", "aura-p3"]'),
-  user: null,
-  orders: [],
-  coupons: [
-    { code: "AURA10", discountPercent: 10, minSpend: 1500, desc: "10% OFF over ৳1,500" },
-    { code: "AURANEW", discountPercent: 15, minSpend: 2500, desc: "15% OFF for first drop order" },
-    { code: "FREESHIP", discountPercent: 100, minSpend: 3000, desc: "Free Delivery over ৳3,000", isFreeShipping: true }
-  ],
-  appliedCoupon: null,
-  firebaseConnected: false
+  wishlist: JSON.parse(localStorage.getItem('aura_wishlist') || '[]'),
+  orders: JSON.parse(localStorage.getItem('aura_orders') || '[]'),
+  addresses: JSON.parse(localStorage.getItem('aura_addresses') || '[]'),
+  profile: JSON.parse(localStorage.getItem('aura_profile') || '{"name":"","phone":""}'),
+  appliedCoupon: null
 };
 
-// Seed Products to Firestore if empty
-async function seedFirestoreProducts() {
-  if (!db) return;
-  try {
-    const snap = await db.collection("products").get();
-    if (snap.empty) {
-      console.log("Seeding initial products into Firestore...");
-      const batch = db.batch();
-      defaultProducts.forEach(p => {
-        const ref = db.collection("products").document(p.id);
-        batch.set(ref, p);
-      });
-      await batch.commit();
-      console.log("Firestore products seeded successfully.");
-    }
-  } catch (err) {
-    console.warn("Firestore seeding notice (operating with local state):", err.message);
-  }
+function escapeHtml(val) {
+  return String(val ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-// Start Realtime Listeners
-function initFirebaseListeners(onProductsUpdate, onOrdersUpdate) {
-  if (!db) {
-    onProductsUpdate(window.AURA_STATE.products);
-    return;
-  }
-
-  // Realtime Products Listener
-  db.collection("products").onSnapshot(snapshot => {
-    window.AURA_STATE.firebaseConnected = true;
-    updateSyncBadge(true);
-    if (!snapshot.empty) {
-      const liveList = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        liveList.push({ id: doc.id, ...data });
-      });
-      window.AURA_STATE.products = liveList;
-      onProductsUpdate(liveList);
-    } else {
-      seedFirestoreProducts();
-      onProductsUpdate(window.AURA_STATE.products);
-    }
-  }, err => {
-    console.warn("Products listener error:", err.message);
-    window.AURA_STATE.firebaseConnected = false;
-    updateSyncBadge(false);
-    onProductsUpdate(window.AURA_STATE.products);
-  });
-
-  // Auth State Listener
-  if (auth) {
-    auth.onAuthStateChanged(user => {
-      window.AURA_STATE.user = user;
-      updateAuthUI(user);
-      if (user) {
-        listenToUserOrders(user.uid, onOrdersUpdate);
-      } else {
-        // Anonymous or guest mode
-        auth.signInAnonymously().catch(() => {});
-      }
-    });
-  }
-}
-
-// Listen to User's Orders in Firestore
-function listenToUserOrders(uid, onOrdersUpdate) {
-  if (!db) return;
-  db.collection("orders")
-    .where("userId", "in", [uid, "guest", ""])
-    .onSnapshot(snapshot => {
-      const orders = [];
-      snapshot.forEach(doc => {
-        orders.push({ id: doc.id, ...doc.data() });
-      });
-      // Sort newest first
-      orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      window.AURA_STATE.orders = orders;
-      if (onOrdersUpdate) onOrdersUpdate(orders);
-    }, err => {
-      console.warn("Orders listener notice:", err.message);
-    });
-}
-
-// Save Order to Firestore
-async function createFirebaseOrder(orderData) {
-  if (db) {
-    try {
-      await db.collection("orders").doc(orderData.id).set({
-        ...orderData,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log("Order saved to Firestore:", orderData.id);
-      return true;
-    } catch (e) {
-      console.warn("Could not write order to Firestore, saving locally:", e.message);
-    }
-  }
-  // Local fallback
-  window.AURA_STATE.orders.unshift(orderData);
-  return true;
-}
-
-// Admin Operations for Live Testing
-async function adminUpdatePrice(productId, newPrice) {
-  const p = window.AURA_STATE.products.find(x => x.id === productId);
-  if (p) p.price = Number(newPrice);
-  if (db) {
-    try {
-      await db.collection("products").doc(productId).update({ price: Number(newPrice) });
-    } catch (e) { console.warn(e); }
-  }
-  window.renderCurrentView();
-}
-
-async function adminUpdateStock(productId, size, stock) {
-  const p = window.AURA_STATE.products.find(x => x.id === productId);
-  if (p && p.stockPerSize) {
-    p.stockPerSize[size] = Number(stock);
-  }
-  if (db) {
-    try {
-      await db.collection("products").doc(productId).update({
-        [`stockPerSize.${size}`]: Number(stock)
-      });
-    } catch (e) { console.warn(e); }
-  }
-  window.renderCurrentView();
-}
-
-async function adminTogglePublish(productId) {
-  const p = window.AURA_STATE.products.find(x => x.id === productId);
-  if (p) {
-    p.published = !p.published;
-    if (db) {
-      try {
-        await db.collection("products").doc(productId).update({ published: p.published });
-      } catch (e) { console.warn(e); }
-    }
-    window.renderCurrentView();
-  }
-}
-
-async function adminUpdateOrderStatus(orderId, newStatus) {
-  const o = window.AURA_STATE.orders.find(x => x.id === orderId);
-  if (o) o.status = newStatus;
-  if (db) {
-    try {
-      await db.collection("orders").doc(orderId).update({ status: newStatus });
-    } catch (e) { console.warn(e); }
-  }
-  window.renderCurrentView();
-}
-
-
-// ==========================================
-// AURA STORE ENGINE & UI ROUTER
-// ==========================================
-// AURA. Web Application Router & Controller
-
-// Utility helpers
 function formatBDT(amount) {
   return '৳' + Number(amount || 0).toLocaleString('en-US');
 }
@@ -1706,16 +1293,207 @@ function showToast(msg) {
   }, 3000);
 }
 
-// Global UI State
+// ==========================================
+// RECENTLY VIEWED & AUTO-DELETE RETENTION
+// ==========================================
+function getRecentlyViewedRetentionDays() {
+  const custom = localStorage.getItem('aura_rv_retention_days');
+  if (custom !== null && custom !== '') {
+    const parsed = parseInt(custom, 10);
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 3650) {
+      return parsed;
+    }
+  }
+  const serverDefault = Number(window.AURA_STATE.settings && window.AURA_STATE.settings.recentlyViewedRetentionDays);
+  return (Number.isInteger(serverDefault) && serverDefault >= 1) ? serverDefault : 30;
+}
+
+function getRecentlyViewedItems() {
+  const retentionDays = getRecentlyViewedRetentionDays();
+  const maxAgeMs = retentionDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let raw = [];
+  try {
+    raw = JSON.parse(localStorage.getItem('aura_recently_viewed') || '[]');
+    if (!Array.isArray(raw)) raw = [];
+  } catch (_) {
+    raw = [];
+  }
+
+  const pruned = raw.filter(item => {
+    if (!item || !item.id || !item.viewedAt) return false;
+    const viewedMs = new Date(item.viewedAt).getTime();
+    return Number.isFinite(viewedMs) && (now - viewedMs) <= maxAgeMs;
+  });
+
+  if (pruned.length !== raw.length) {
+    localStorage.setItem('aura_recently_viewed', JSON.stringify(pruned));
+  }
+  return pruned;
+}
+
+function recordProductView(product) {
+  if (!product || !product.id) return;
+  let views = getRecentlyViewedItems();
+  views = views.filter(v => v.id !== product.id);
+  views.unshift({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image: product.image,
+    category: product.category,
+    viewedAt: new Date().toISOString()
+  });
+  if (views.length > 20) views = views.slice(0, 20);
+  localStorage.setItem('aura_recently_viewed', JSON.stringify(views));
+}
+
+function saveRetentionDaysPreference(daysValue) {
+  const parsed = parseInt(daysValue, 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 3650) {
+    showToast('Please enter a valid number of days (1 to 3650)');
+    return;
+  }
+  localStorage.setItem('aura_rv_retention_days', String(parsed));
+  getRecentlyViewedItems();
+  showToast(`Recently viewed auto-delete updated to ${parsed} days`);
+  renderCurrentView();
+}
+
+function clearRecentlyViewed() {
+  localStorage.removeItem('aura_recently_viewed');
+  showToast('Recently viewed history cleared');
+  renderCurrentView();
+}
+
+function removeRecentlyViewedItem(productId) {
+  const views = getRecentlyViewedItems().filter(v => v.id !== productId);
+  localStorage.setItem('aura_recently_viewed', JSON.stringify(views));
+  renderCurrentView();
+}
+
+// ==========================================
+// LIVE DATA SYNC WITH GITHUB 'aura-product' BACKEND
+// ==========================================
+async function loadLiveStorefront(renderAfter = true) {
+  try {
+    const res = await fetch('/api/storefront', { cache: 'no-store' });
+    const data = await res.json();
+    window.AURA_STATE.loading = false;
+    window.AURA_STATE.githubConfigured = Boolean(data.githubConfigured);
+
+    if (!res.ok) {
+      window.AURA_STATE.storeError = data.error || 'Storefront unavailable';
+      window.AURA_STATE.products = [];
+    } else {
+      window.AURA_STATE.storeError = null;
+      window.AURA_STATE.products = Array.isArray(data.products) ? data.products : [];
+      window.AURA_STATE.sizeGuides = Array.isArray(data.sizeGuides) ? data.sizeGuides : [];
+      if (data.settings) {
+        window.AURA_STATE.settings = { ...window.AURA_STATE.settings, ...data.settings };
+      }
+      applyLiveSettingsToChrome();
+    }
+  } catch (err) {
+    window.AURA_STATE.loading = false;
+    window.AURA_STATE.storeError = 'Unable to reach storefront server: ' + err.message;
+  }
+
+  if (renderAfter) {
+    renderCurrentView();
+  }
+}
+
+async function syncLiveOrders() {
+  const orderIds = window.AURA_STATE.orders.map(o => o && o.id).filter(Boolean);
+  if (orderIds.length === 0) return;
+  try {
+    const res = await fetch('/api/orders/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderIds })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.orders) && data.orders.length > 0) {
+      const byId = new Map(data.orders.map(o => [o.id, o]));
+      window.AURA_STATE.orders = window.AURA_STATE.orders.map(localOrd => byId.get(localOrd.id) || localOrd);
+      localStorage.setItem('aura_orders', JSON.stringify(window.AURA_STATE.orders));
+      if (getRoute().view === 'account') {
+        renderCurrentView();
+      }
+    }
+  } catch (_) {}
+}
+
+function applyLiveSettingsToChrome() {
+  const bar = document.getElementById('promo-bar');
+  const s = window.AURA_STATE.settings;
+  if (bar && s && s.announcementBar) {
+    bar.innerHTML = `<span>${escapeHtml(s.announcementBar)}</span>`;
+  }
+}
+
+// Size Guide Modal Toggle (loads live size guides from aura-product)
+function toggleSizeGuide(open) {
+  const modal = document.getElementById('size-guide-modal');
+  if (!modal) return;
+  if (open) {
+    renderSizeGuideModalContent();
+    modal.style.display = 'flex';
+  } else {
+    modal.style.display = 'none';
+  }
+}
+
+function renderSizeGuideModalContent() {
+  const content = document.getElementById('sg-content');
+  if (!content) return;
+  const guides = window.AURA_STATE.sizeGuides || [];
+  if (guides.length === 0) {
+    content.innerHTML = `
+      <div style="text-align:center; padding:32px 16px; color:var(--text-sub); font-size:13px;">
+        No published size guide charts yet. Configure size guides in the Admin Studio to display garment measurements here.
+      </div>
+    `;
+    return;
+  }
+
+  content.innerHTML = guides.map(g => `
+    <div style="margin-bottom:24px;">
+      <h4 style="font-size:14px; font-weight:800; text-transform:uppercase; margin-bottom:10px;">${escapeHtml(g.category)}</h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:left;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border); background:var(--surface-sub);">
+              <th style="padding:10px 14px; font-weight:800;">SIZE</th>
+              ${(g.columns || []).map(col => `<th style="padding:10px 14px; font-weight:800;">${escapeHtml(col)}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${(g.rows || []).map(r => `
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:10px 14px; font-weight:800;">${escapeHtml(r.size)}</td>
+                ${(r.values || []).map(v => `<td style="padding:10px 14px;">${escapeHtml(v)}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==========================================
+// UI STATE & ROUTER
+// ==========================================
 let activeCategory = 'All';
-let activeStyle = 'All';
 let searchQuery = '';
 let sortBy = 'featured';
 let selectedColor = null;
 let selectedSize = null;
 let selectedQty = 1;
 
-// Router Handler
 function getRoute() {
   const hash = window.location.hash || '#home';
   const parts = hash.slice(1).split('/');
@@ -1731,7 +1509,6 @@ function navigateTo(hash) {
   window.scrollTo(0, 0);
 }
 
-// Update Active Nav Link
 function updateNavLinks(view) {
   document.querySelectorAll('.nav-link').forEach(link => {
     const target = link.getAttribute('href').replace('#', '');
@@ -1743,11 +1520,10 @@ function updateNavLinks(view) {
   });
 }
 
-// Update Cart and Wishlist Badges
 function updateCounters() {
   const totalCart = window.AURA_STATE.cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalWish = window.AURA_STATE.wishlist.length;
-  
+
   const cartBadge = document.getElementById('cart-badge');
   if (cartBadge) {
     cartBadge.textContent = totalCart;
@@ -1760,31 +1536,6 @@ function updateCounters() {
   }
 }
 
-// Update Sync Badge
-function updateSyncBadge(isConnected) {
-  const badge = document.getElementById('sync-status-badge');
-  if (badge) {
-    badge.innerHTML = `
-      <span class="sync-dot" style="background: ${isConnected ? 'var(--success)' : '#f59e0b'}"></span>
-      <span>${isConnected ? 'AURA CLOUD SYNC: ACTIVE' : 'AURA OFFLINE MODE'}</span>
-    `;
-  }
-}
-
-// Update Auth UI in Header
-function updateAuthUI(user) {
-  const authBtn = document.getElementById('auth-action-btn');
-  if (!authBtn) return;
-  if (user && !user.isAnonymous) {
-    authBtn.innerHTML = '<i class="fa-solid fa-user-check"></i>';
-    authBtn.title = `Account: ${user.email || 'Member'}`;
-  } else {
-    authBtn.innerHTML = '<i class="fa-regular fa-user"></i>';
-    authBtn.title = 'Sign In';
-  }
-}
-
-// Cart Drawer Controls
 function toggleCartDrawer(open) {
   const drawer = document.getElementById('cart-drawer');
   const backdrop = document.getElementById('cart-backdrop');
@@ -1800,31 +1551,31 @@ function toggleCartDrawer(open) {
   }
 }
 
-// Wishlist Toggle
 function toggleWishlist(productId) {
   const list = window.AURA_STATE.wishlist;
   const idx = list.indexOf(productId);
   if (idx > -1) {
     list.splice(idx, 1);
-    showToast("Removed from wishlist");
+    showToast('Removed from wishlist');
   } else {
     list.push(productId);
-    showToast("Saved to wishlist");
+    showToast('Saved to wishlist');
   }
   localStorage.setItem('aura_wishlist', JSON.stringify(list));
   updateCounters();
   renderCurrentView();
 }
 
-// Cart Operations
 function addToCart(product, color, size, quantity = 1) {
   const cart = window.AURA_STATE.cart;
   const existing = cart.find(item => item.productId === product.id && item.color.name === color.name && item.size === size);
-  
-  // Stock Check
-  const availableStock = product.stockPerSize ? (product.stockPerSize[size] || 0) : 10;
+  const availableStock = product.stockPerSize && product.stockPerSize[size] !== undefined ? Number(product.stockPerSize[size]) : 0;
   const currentInCart = existing ? existing.quantity : 0;
-  
+
+  if (availableStock <= 0) {
+    showToast(`Size ${size} is currently out of stock`);
+    return false;
+  }
   if (currentInCart + quantity > availableStock) {
     showToast(`Sorry, only ${availableStock} units available in size ${size}`);
     return false;
@@ -1834,14 +1585,14 @@ function addToCart(product, color, size, quantity = 1) {
     existing.quantity += quantity;
   } else {
     cart.push({
-      id: 'cart-' + Date.now(),
+      id: 'cart-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
       productId: product.id,
       name: product.name,
       price: product.price,
       image: product.image,
-      color: color,
-      size: size,
-      quantity: quantity
+      color,
+      size,
+      quantity
     });
   }
 
@@ -1858,7 +1609,9 @@ function updateCartQty(cartItemId, delta) {
   if (!item) return;
 
   const product = window.AURA_STATE.products.find(p => p.id === item.productId);
-  const maxStock = (product && product.stockPerSize) ? (product.stockPerSize[item.size] || 99) : 99;
+  const maxStock = (product && product.stockPerSize && product.stockPerSize[item.size] !== undefined)
+    ? Number(product.stockPerSize[item.size])
+    : 20;
 
   item.quantity += delta;
   if (item.quantity > maxStock) {
@@ -1867,7 +1620,7 @@ function updateCartQty(cartItemId, delta) {
   }
   if (item.quantity <= 0) {
     window.AURA_STATE.cart = cart.filter(x => x.id !== cartItemId);
-    showToast("Item removed from bag");
+    showToast('Item removed from bag');
   }
   localStorage.setItem('aura_cart', JSON.stringify(window.AURA_STATE.cart));
   updateCounters();
@@ -1875,23 +1628,22 @@ function updateCartQty(cartItemId, delta) {
   if (getRoute().view === 'cart') renderCurrentView();
 }
 
-// Calculations
 function getCartTotals() {
   const items = window.AURA_STATE.cart;
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
+  const s = window.AURA_STATE.settings || {};
+
   let discount = 0;
   const coupon = window.AURA_STATE.appliedCoupon;
   if (coupon && subtotal >= coupon.minSpend) {
-    if (coupon.isFreeShipping) {
-      discount = 0; // handled in delivery fee
-    } else {
+    if (!coupon.isFreeShipping) {
       discount = Math.round((subtotal * coupon.discountPercent) / 100);
     }
   }
 
-  let deliveryFee = 100;
-  if (subtotal >= 3000 || (coupon && coupon.isFreeShipping)) {
+  let deliveryFee = Number(s.deliveryFee ?? 100);
+  const threshold = Number(s.freeShippingThreshold ?? 3000);
+  if (subtotal >= threshold || (coupon && coupon.isFreeShipping)) {
     deliveryFee = 0;
   }
   if (items.length === 0) deliveryFee = 0;
@@ -1900,7 +1652,6 @@ function getCartTotals() {
   return { subtotal, discount, deliveryFee, total };
 }
 
-// Render Cart in Slide-out Drawer
 function renderCartDrawer() {
   const container = document.getElementById('drawer-cart-items');
   const footer = document.getElementById('drawer-cart-footer');
@@ -1912,7 +1663,7 @@ function renderCartDrawer() {
       <div style="text-align: center; padding: 60px 20px;">
         <i class="fa-solid fa-bag-shopping" style="font-size: 48px; color: var(--border-dark); margin-bottom: 16px;"></i>
         <h3 style="font-size: 18px; font-weight: 800; text-transform: uppercase;">YOUR BAG IS EMPTY</h3>
-        <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Discover our heavyweight silhouettes and new drops.</p>
+        <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Discover our heavyweight silhouettes and live drops.</p>
         <button onclick="toggleCartDrawer(false); navigateTo('#shop');" class="btn-dark" style="width: 100%;">EXPLORE COLLECTION</button>
       </div>
     `;
@@ -1923,16 +1674,16 @@ function renderCartDrawer() {
   footer.style.display = 'block';
   container.innerHTML = cart.map(item => `
     <div class="cart-item">
-      <img src="${item.image}" alt="${item.name}" class="cart-item-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
+      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" class="cart-item-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
       <div class="cart-item-details">
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-meta">Color: ${item.color.name} • Size: ${item.size}</div>
+        <div class="cart-item-name">${escapeHtml(item.name)}</div>
+        <div class="cart-item-meta">Color: ${escapeHtml(item.color.name)} • Size: ${escapeHtml(item.size)}</div>
         <div class="cart-item-bottom">
           <div class="price-current">${formatBDT(item.price)}</div>
           <div class="qty-stepper">
-            <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+            <button class="qty-btn" onclick="updateCartQty('${escapeHtml(item.id)}', -1)"><i class="fa-solid fa-minus"></i></button>
             <div class="qty-val">${item.quantity}</div>
-            <button class="qty-btn" onclick="updateCartQty('${item.id}', 1)"><i class="fa-solid fa-plus"></i></button>
+            <button class="qty-btn" onclick="updateCartQty('${escapeHtml(item.id)}', 1)"><i class="fa-solid fa-plus"></i></button>
           </div>
         </div>
       </div>
@@ -1947,7 +1698,7 @@ function renderCartDrawer() {
     </div>
     ${discount > 0 ? `
       <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--success);">
-        <span>Discount (${window.AURA_STATE.appliedCoupon.code})</span>
+        <span>Discount (${escapeHtml(window.AURA_STATE.appliedCoupon.code)})</span>
         <span>-${formatBDT(discount)}</span>
       </div>
     ` : ''}
@@ -1964,18 +1715,38 @@ function renderCartDrawer() {
   `;
 }
 
-// -------------------------------------------------------------
-// VIEWS RENDERING
-// -------------------------------------------------------------
+// ==========================================
+// VIEWS
+// ==========================================
 
-// 1. HOME VIEW
+function renderEmptyCatalogHtml() {
+  if (window.AURA_STATE.loading) {
+    return `
+      <div style="text-align: center; padding: 72px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 48px;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--text-sub); margin-bottom: 14px;"></i>
+        <h3 style="font-size: 18px; font-weight: 800;">LOADING LIVE COLLECTION...</h3>
+      </div>
+    `;
+  }
+  return `
+    <div style="text-align: center; padding: 72px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 48px;">
+      <i class="fa-solid fa-shirt" style="font-size: 40px; color: var(--text-muted); margin-bottom: 16px;"></i>
+      <h3 style="font-size: 20px; font-weight: 800;">NO LIVE PRODUCTS PUBLISHED YET</h3>
+      <p style="font-size: 13px; color: var(--text-sub); margin: 8px auto 0; max-width: 460px;">
+        ${escapeHtml(window.AURA_STATE.storeError || 'Products added in the AURA Admin Studio will appear here live once published to the aura-product branch.')}
+      </p>
+    </div>
+  `;
+}
+
 function renderHomeView(app) {
+  const s = window.AURA_STATE.settings || {};
   const publishedProducts = window.AURA_STATE.products.filter(p => p.published !== false);
   const featured = publishedProducts.filter(p => p.isFeatured || p.isNew).slice(0, 4);
+  const featuredToShow = featured.length > 0 ? featured : publishedProducts.slice(0, 4);
   const drops = publishedProducts.filter(p => p.isDrop).slice(0, 4);
 
   app.innerHTML = `
-    <!-- Hero Banner -->
     <div class="container">
       <section class="hero-banner">
         <img src="/assets/img_hero_fashion.jpg" alt="AURA Hero" class="hero-bg-img" onerror="this.style.opacity='0.2'">
@@ -1983,10 +1754,10 @@ function renderHomeView(app) {
         <div class="hero-content">
           <div class="hero-pill">
             <span class="dot"></span>
-            <span>DROP 04 : MONOLITH IS LIVE</span>
+            <span>LIVE CATALOG • AURA-PRODUCT SYNC</span>
           </div>
-          <h1 class="hero-title">GIVES YOU<br>DIFFERENT VIBE</h1>
-          <p class="hero-subtitle">Architectural cuts, heavyweight 280 GSM custom French terry, and relaxed luxury silhouettes engineered in Dhaka for global presence.</p>
+          <h1 class="hero-title">${escapeHtml(s.heroTitle || 'GIVES YOU DIFFERENT VIBE')}</h1>
+          <p class="hero-subtitle">${escapeHtml(s.heroSubtitle || 'Architectural cuts, heavyweight 280 GSM custom French terry, and relaxed luxury silhouettes.')}</p>
           <div class="hero-actions">
             <button onclick="navigateTo('#shop')" class="btn-luxury">
               <span>EXPLORE COLLECTION</span>
@@ -1999,7 +1770,6 @@ function renderHomeView(app) {
         </div>
       </section>
 
-      <!-- Category Quick Chips -->
       <div class="category-bar">
         ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(cat => `
           <div class="cat-chip ${activeCategory === cat ? 'active' : ''}" onclick="filterCategory('${cat}')">
@@ -2009,25 +1779,25 @@ function renderHomeView(app) {
         `).join('')}
       </div>
 
-      <!-- Featured New Arrivals -->
       <div class="section-header">
         <div>
           <h2 class="section-title">SIGNATURE PIECES</h2>
-          <div class="section-subtitle">Heavyweight essentials designed to stand the test of time</div>
+          <div class="section-subtitle">Live silhouettes published in our store</div>
         </div>
         <a href="#shop" class="section-link">VIEW ALL (${publishedProducts.length}) <i class="fa-solid fa-arrow-right"></i></a>
       </div>
 
-      <div class="product-grid">
-        ${featured.map(renderProductCardHtml).join('')}
-      </div>
+      ${featuredToShow.length > 0 ? `
+        <div class="product-grid">
+          ${featuredToShow.map(renderProductCardHtml).join('')}
+        </div>
+      ` : renderEmptyCatalogHtml()}
 
-      <!-- Flash Sale / Drop Capsule -->
       <section class="capsule-card">
         <div>
           <div class="capsule-badge"><i class="fa-solid fa-bolt"></i> LIMITED TIME CAPSULE</div>
           <h2 class="capsule-title">MIDNIGHT SHADOW DROP</h2>
-          <p class="capsule-desc">Our limited-run 450 GSM luxury French Terry hoodies and cargo silhouettes. Use code <strong style="color:#fff">AURANEW</strong> for 15% off.</p>
+          <p class="capsule-desc">Limited-run architectural silhouettes crafted with custom heavyweight fabrics. Free shipping on orders over ${formatBDT(s.freeShippingThreshold ?? 3000)}.</p>
           <div class="countdown-box">
             <div class="countdown-unit"><div class="countdown-num" id="cd-hours">07</div><div class="countdown-lbl">Hours</div></div>
             <div class="countdown-unit"><div class="countdown-num" id="cd-mins">48</div><div class="countdown-lbl">Mins</div></div>
@@ -2040,20 +1810,19 @@ function renderHomeView(app) {
         </div>
       </section>
 
-      <!-- Curated Lookbook Grid -->
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">CURRENT DROPS & CAPSULES</h2>
-          <div class="section-subtitle">Exclusive limited-edition street essentials</div>
+      ${drops.length > 0 ? `
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">CURRENT DROPS & CAPSULES</h2>
+            <div class="section-subtitle">Exclusive limited-edition street essentials</div>
+          </div>
+          <a href="#shop" class="section-link">SHOP DROPS <i class="fa-solid fa-arrow-right"></i></a>
         </div>
-        <a href="#shop" class="section-link">SHOP DROPS <i class="fa-solid fa-arrow-right"></i></a>
-      </div>
+        <div class="product-grid">
+          ${drops.map(renderProductCardHtml).join('')}
+        </div>
+      ` : ''}
 
-      <div class="product-grid">
-        ${drops.map(renderProductCardHtml).join('')}
-      </div>
-
-      <!-- Journal Teaser -->
       <section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; margin: 48px 0;">
         <div style="max-width: 680px;">
           <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px;">AURA JOURNAL • ISSUE 04</div>
@@ -2065,54 +1834,46 @@ function renderHomeView(app) {
     </div>
   `;
 
-  // Start live countdown ticker
   startCountdownTimer();
 }
 
-// 2. SHOP VIEW
 function renderShopView(app) {
   let products = window.AURA_STATE.products.filter(p => p.published !== false);
 
   if (activeCategory !== 'All') {
-    products = products.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
-  }
-
-  if (activeStyle !== 'All') {
-    products = products.filter(p => p.style && p.style.toLowerCase() === activeStyle.toLowerCase());
+    products = products.filter(p => String(p.category || '').toLowerCase() === activeCategory.toLowerCase());
   }
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
-    products = products.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || (p.tags && p.tags.some(t => t.toLowerCase().includes(q))));
+    products = products.filter(p =>
+      String(p.name || '').toLowerCase().includes(q) ||
+      String(p.description || '').toLowerCase().includes(q) ||
+      String(p.tagline || '').toLowerCase().includes(q)
+    );
   }
 
-  // Sorting
   if (sortBy === 'price-low') {
     products.sort((a, b) => a.price - b.price);
   } else if (sortBy === 'price-high') {
     products.sort((a, b) => b.price - a.price);
-  } else if (sortBy === 'rating') {
-    products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
   app.innerHTML = `
     <div class="container" style="padding-top: 24px;">
-      <!-- Shop Header & Filters -->
       <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 32px;">
         <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <div>
             <h1 style="font-size: 26px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">AURA CATALOGUE</h1>
-            <div style="font-size: 13px; color: var(--text-sub);">Showing ${products.length} products</div>
+            <div style="font-size: 13px; color: var(--text-sub);">Showing ${products.length} live products</div>
           </div>
-          <!-- Search Box -->
           <div style="display: flex; align-items: center; background: var(--surface-sub); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; min-width: 280px;">
             <i class="fa-solid fa-magnifying-glass" style="color: var(--text-sub); margin-right: 10px;"></i>
-            <input type="text" id="shop-search-input" value="${searchQuery}" placeholder="Search oversized tee, cargo, hoodie..." style="border: none; background: transparent; outline: none; font-size: 13px; width: 100%;" oninput="handleSearch(this.value)">
+            <input type="text" id="shop-search-input" value="${escapeHtml(searchQuery)}" placeholder="Search catalogue..." style="border: none; background: transparent; outline: none; font-size: 13px; width: 100%;" oninput="handleSearch(this.value)">
             ${searchQuery ? `<button onclick="handleSearch('')" style="color: var(--text-sub); font-size: 12px;"><i class="fa-solid fa-xmark"></i></button>` : ''}
           </div>
         </div>
 
-        <!-- Filter Rows -->
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
           <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--text-sub); margin-right: 6px;">Category:</span>
           ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(c => `
@@ -2125,152 +1886,134 @@ function renderShopView(app) {
               <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Featured Drops</option>
               <option value="price-low" ${sortBy === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
               <option value="price-high" ${sortBy === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
-              <option value="rating" ${sortBy === 'rating' ? 'selected' : ''}>Customer Rating</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- Product Grid -->
       ${products.length > 0 ? `
         <div class="product-grid">
           ${products.map(renderProductCardHtml).join('')}
         </div>
-      ` : `
-        <div style="text-align: center; padding: 80px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
-          <i class="fa-solid fa-magnifying-glass" style="font-size: 40px; color: var(--text-muted); margin-bottom: 16px;"></i>
-          <h3 style="font-size: 20px; font-weight: 800;">NO MATCHING SILHOUETTES FOUND</h3>
-          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Try searching for "tee", "cargo", or clearing your filters.</p>
-          <button onclick="filterCategory('All'); handleSearch('');" class="btn-dark">RESET ALL FILTERS</button>
-        </div>
-      `}
+      ` : renderEmptyCatalogHtml()}
     </div>
   `;
 }
 
-// 3. PRODUCT DETAILS VIEW
 function renderProductDetailView(app, productId) {
-  const pRecord = window.AURA_STATE.products.find(x => x.id === productId);
-  if (pRecord && typeof recordProductView === 'function') recordProductView(pRecord);
   const product = window.AURA_STATE.products.find(p => p.id === productId);
   if (!product) {
     app.innerHTML = `
       <div class="container" style="text-align: center; padding: 100px 20px;">
-        <h2>Product Not Found</h2>
+        <h2>${window.AURA_STATE.loading ? 'Loading product...' : 'Product Not Found'}</h2>
         <button onclick="navigateTo('#shop')" class="btn-dark" style="margin-top: 16px;">Return to Shop</button>
       </div>
     `;
     return;
   }
 
-  // Set default selection
-  if (!selectedColor && product.colors && product.colors.length) selectedColor = product.colors[0];
-  if (!selectedSize && product.sizes && product.sizes.length) selectedSize = product.sizes[0];
-  
-  const currentStock = (product.stockPerSize && selectedSize) ? (product.stockPerSize[selectedSize] || 0) : 10;
-  const isOutOfStock = currentStock === 0;
+  recordProductView(product);
+
+  if (!selectedColor || !product.colors?.some(c => c.name === selectedColor.name)) {
+    selectedColor = (product.colors && product.colors[0]) || { name: 'Standard', hex: '#111111' };
+  }
+  if (!selectedSize || !product.sizes?.includes(selectedSize)) {
+    selectedSize = (product.sizes && product.sizes[0]) || 'M';
+  }
+
+  const currentStock = (product.stockPerSize && selectedSize && product.stockPerSize[selectedSize] !== undefined)
+    ? Number(product.stockPerSize[selectedSize])
+    : 0;
+  const isOutOfStock = currentStock <= 0;
 
   app.innerHTML = `
     <div class="container" style="padding-top: 32px;">
-      <!-- Breadcrumb -->
       <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.06em;">
-        <a href="#home">Home</a> / <a href="#shop">Shop</a> / <a href="#shop" onclick="filterCategory('${product.category}')">${product.category}</a> / <strong style="color: var(--text-main);">${product.name}</strong>
+        <a href="#home">Home</a> / <a href="#shop">Shop</a> / <a href="#shop" onclick="filterCategory('${escapeHtml(product.category)}')">${escapeHtml(product.category)}</a> / <strong style="color: var(--text-main);">${escapeHtml(product.name)}</strong>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-bottom: 64px;" class="product-detail-layout">
-        <!-- Gallery -->
         <div>
           <div style="border-radius: var(--radius-md); overflow: hidden; background: #18181b; aspect-ratio: 4/5; border: 1px solid var(--border); margin-bottom: 16px;">
-            <img id="main-product-img" src="${product.image}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/img_hero_fashion.jpg'">
-          </div>
-          <div style="display: flex; gap: 12px;">
-            <img src="${product.image}" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 2px solid var(--primary); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
-            <img src="/assets/img_complete_look.jpg" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
-            <img src="/assets/img_lookbook_urban.jpg" alt="Thumb" style="width: 80px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;" onclick="document.getElementById('main-product-img').src=this.src">
+            <img id="main-product-img" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/img_hero_fashion.jpg'">
           </div>
         </div>
 
-        <!-- Information & Purchasing -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span class="badge-tag" style="position: static;">${product.badge || 'AURA DROP'}</span>
-            <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;">
-              <i class="fa-solid fa-star" style="color: var(--gold);"></i>
-              <span>${product.rating || 4.9}</span>
-              <span style="color: var(--text-sub);">(${product.reviewCount || 42} reviews)</span>
-            </div>
+            <span class="badge-tag" style="position: static;">${escapeHtml(product.badge || 'AURA DROP')}</span>
+            <button type="button" onclick="toggleSizeGuide(true)" style="color: var(--gold); font-size: 12px; font-weight: 800; text-decoration: underline;">
+              <i class="fa-solid fa-ruler-horizontal"></i> SIZE GUIDE
+            </button>
           </div>
 
-          <h1 style="font-size: 34px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; line-height: 1.1;">${product.name}</h1>
-          <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 20px;">${product.tagline}</div>
+          <h1 style="font-size: 34px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; line-height: 1.1;">${escapeHtml(product.name)}</h1>
+          <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 20px;">${escapeHtml(product.tagline)}</div>
 
-          <!-- Price Display -->
           <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
             <div style="font-size: 28px; font-weight: 900;">${formatBDT(product.price)}</div>
             ${product.originalPrice ? `<div style="font-size: 18px; color: var(--text-muted); text-decoration: line-through;">${formatBDT(product.originalPrice)}</div>` : ''}
-            <span style="background: var(--success); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px;">IN STOCK</span>
+            <span style="background: ${isOutOfStock ? 'var(--danger)' : 'var(--success)'}; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px;">
+              ${isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
+            </span>
           </div>
 
-          <!-- Color Selector -->
           ${product.colors && product.colors.length ? `
             <div style="margin-bottom: 20px;">
               <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">
-                COLOR: <span id="color-label" style="color: var(--text-sub);">${selectedColor ? selectedColor.name : ''}</span>
+                COLOR: <span id="color-label" style="color: var(--text-sub);">${escapeHtml(selectedColor.name)}</span>
               </div>
               <div style="display: flex; gap: 10px;">
                 ${product.colors.map(c => `
-                  <div onclick="selectColor('${product.id}', '${c.name}', '${c.hex}')" style="width: 32px; height: 32px; border-radius: 50%; background: ${c.hex}; border: 2px solid ${selectedColor && selectedColor.name === c.name ? 'var(--primary)' : 'var(--border)'}; cursor: pointer; box-shadow: 0 0 0 2px ${selectedColor && selectedColor.name === c.name ? '#fff' : 'transparent'};" title="${c.name}"></div>
+                  <div onclick="selectColor('${escapeHtml(product.id)}', '${escapeHtml(c.name)}', '${escapeHtml(c.hex)}')" style="width: 32px; height: 32px; border-radius: 50%; background: ${escapeHtml(c.hex)}; border: 2px solid ${selectedColor && selectedColor.name === c.name ? 'var(--primary)' : 'var(--border)'}; cursor: pointer; box-shadow: 0 0 0 2px ${selectedColor && selectedColor.name === c.name ? '#fff' : 'transparent'};" title="${escapeHtml(c.name)}"></div>
                 `).join('')}
               </div>
             </div>
           ` : ''}
 
-          <!-- Size Selector with Real Stock Indicator -->
           <div style="margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <div style="font-size: 12px; font-weight: 800; text-transform: uppercase;">
-                SIZE: <span id="size-label" style="color: var(--text-sub);">${selectedSize}</span>
+                SIZE: <span id="size-label" style="color: var(--text-sub);">${escapeHtml(selectedSize)}</span>
               </div>
               <div id="stock-feedback" style="font-size: 12px; font-weight: 700; color: ${isOutOfStock ? 'var(--danger)' : currentStock < 6 ? '#f59e0b' : 'var(--success)'};">
                 ${isOutOfStock ? 'OUT OF STOCK' : currentStock < 6 ? `Only ${currentStock} pieces left` : `${currentStock} pieces available`}
               </div>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              ${(product.sizes || ['S', 'M', 'L', 'XL', 'XXL']).map(s => {
-                const sStock = (product.stockPerSize && product.stockPerSize[s] !== undefined) ? product.stockPerSize[s] : 10;
-                const isSizeOut = sStock === 0;
+              ${(product.sizes || []).map(s => {
+                const sStock = (product.stockPerSize && product.stockPerSize[s] !== undefined) ? Number(product.stockPerSize[s]) : 0;
+                const isSizeOut = sStock <= 0;
                 return `
-                  <button onclick="selectSize('${product.id}', '${s}')" class="cat-chip ${selectedSize === s ? 'active' : ''}" style="min-width: 48px; justify-content: center; ${isSizeOut ? 'opacity: 0.4; text-decoration: line-through;' : ''}">
-                    ${s}
+                  <button onclick="selectSize('${escapeHtml(product.id)}', '${escapeHtml(s)}')" class="cat-chip ${selectedSize === s ? 'active' : ''}" style="min-width: 48px; justify-content: center; ${isSizeOut ? 'opacity: 0.4; text-decoration: line-through;' : ''}">
+                    ${escapeHtml(s)}
                   </button>
                 `;
               }).join('')}
             </div>
           </div>
 
-          <!-- Actions -->
           <div style="display: flex; gap: 12px; margin-bottom: 32px;">
-            <button onclick="handleAddToCart('${product.id}')" class="btn-dark" style="flex: 2; padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
+            <button onclick="handleAddToCart('${escapeHtml(product.id)}')" class="btn-dark" style="flex: 2; padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
               <i class="fa-solid fa-bag-shopping"></i>
               <span>${isOutOfStock ? 'OUT OF STOCK' : 'ADD TO BAG'}</span>
             </button>
-            <button onclick="handleBuyNow('${product.id}')" class="btn-luxury-outline" style="flex: 1; border-color: var(--primary); color: var(--primary); padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
+            <button onclick="handleBuyNow('${escapeHtml(product.id)}')" class="btn-luxury-outline" style="flex: 1; border-color: var(--primary); color: var(--primary); padding: 16px;" ${isOutOfStock ? 'disabled' : ''}>
               BUY NOW
             </button>
-            <button onclick="toggleWishlist('${product.id}')" class="wishlist-toggle" style="position: static; width: 54px; height: 54px; border: 1px solid var(--border);">
+            <button onclick="toggleWishlist('${escapeHtml(product.id)}')" class="wishlist-toggle" style="position: static; width: 54px; height: 54px; border: 1px solid var(--border);">
               <i class="fa-${window.AURA_STATE.wishlist.includes(product.id) ? 'solid' : 'regular'} fa-heart" style="${window.AURA_STATE.wishlist.includes(product.id) ? 'color: var(--danger)' : ''}"></i>
             </button>
           </div>
 
-          <!-- Silhouette Specs Accordion -->
           <div style="border-top: 1px solid var(--border); padding-top: 24px;">
             <h4 style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">CRAFT & SPECIFICATIONS</h4>
-            <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 16px;">${product.description}</p>
+            <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 16px;">${escapeHtml(product.description)}</p>
             <ul style="list-style: none; font-size: 12px; color: var(--text-sub); display: flex; flex-direction: column; gap: 8px;">
-              <li><strong>Fabric:</strong> ${product.fabric || '100% French Terry Cotton'}</li>
-              <li><strong>Fit:</strong> ${product.fit || 'Boxy Oversized drop shoulder'}</li>
-              <li><strong>Care:</strong> ${product.care || 'Cold wash inside out'}</li>
-              <li><strong>Delivery:</strong> Express Courier via Pathao (48h Dhaka / 72h Nationwide)</li>
+              ${product.fabric ? `<li><strong>Fabric:</strong> ${escapeHtml(product.fabric)}</li>` : ''}
+              ${product.fit ? `<li><strong>Fit:</strong> ${escapeHtml(product.fit)}</li>` : ''}
+              ${product.care ? `<li><strong>Care:</strong> ${escapeHtml(product.care)}</li>` : ''}
+              <li><strong>Delivery:</strong> Express Courier via Pathao / RedX / Steadfast</li>
             </ul>
           </div>
         </div>
@@ -2279,7 +2022,6 @@ function renderProductDetailView(app, productId) {
   `;
 }
 
-// 4. CART FULL VIEW
 function renderCartView(app) {
   const cart = window.AURA_STATE.cart;
   const { subtotal, discount, deliveryFee, total } = getCartTotals();
@@ -2287,63 +2029,57 @@ function renderCartView(app) {
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 64px;">
       <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 24px;">YOUR BAG (${cart.reduce((s, i) => s + i.quantity, 0)} ITEMS)</h1>
-      
       ${cart.length > 0 ? `
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;" class="cart-layout">
           <div>
             ${cart.map(item => `
               <div style="display: flex; gap: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; align-items: center;">
-                <img src="${item.image}" alt="${item.name}" style="width: 90px; height: 110px; object-fit: cover; border-radius: 6px; background: #18181b;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+                <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="width: 90px; height: 110px; object-fit: cover; border-radius: 6px; background: #18181b;" onerror="this.src='/assets/img_hero_fashion.jpg'">
                 <div style="flex: 1;">
-                  <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 4px;">${item.name}</h3>
-                  <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">Color: ${item.color.name} • Size: ${item.size}</div>
+                  <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 4px;">${escapeHtml(item.name)}</h3>
+                  <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">Color: ${escapeHtml(item.color.name)} • Size: ${escapeHtml(item.size)}</div>
                   <div style="font-size: 17px; font-weight: 900;">${formatBDT(item.price * item.quantity)}</div>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 16px;">
-                  <button onclick="updateCartQty('${item.id}', -${item.quantity})" style="color: var(--text-sub); font-size: 13px;"><i class="fa-solid fa-trash"></i></button>
+                  <button onclick="updateCartQty('${escapeHtml(item.id)}', -${item.quantity})" style="color: var(--text-sub); font-size: 13px;"><i class="fa-solid fa-trash"></i></button>
                   <div class="qty-stepper">
-                    <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+                    <button class="qty-btn" onclick="updateCartQty('${escapeHtml(item.id)}', -1)"><i class="fa-solid fa-minus"></i></button>
                     <div class="qty-val">${item.quantity}</div>
-                    <button class="qty-btn" onclick="updateCartQty('${item.id}', 1)"><i class="fa-solid fa-plus"></i></button>
+                    <button class="qty-btn" onclick="updateCartQty('${escapeHtml(item.id)}', 1)"><i class="fa-solid fa-plus"></i></button>
                   </div>
                 </div>
               </div>
             `).join('')}
           </div>
 
-          <!-- Order Summary -->
           <div>
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
               <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;">ORDER SUMMARY</h3>
-              
-              <!-- Coupon Box -->
-              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                <input type="text" id="coupon-code-input" placeholder="Coupon (e.g. AURA10)" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; text-transform: uppercase;">
-                <button onclick="applyCouponCode()" class="btn-dark" style="padding: 10px 16px; font-size: 12px;">APPLY</button>
-              </div>
-              ${window.AURA_STATE.appliedCoupon ? `
-                <div style="font-size: 12px; color: var(--success); font-weight: 700; margin-bottom: 16px;">
-                  ✓ Coupon '${window.AURA_STATE.appliedCoupon.code}' applied!
+              ${(window.AURA_STATE.settings.coupons || []).length > 0 ? `
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                  <input type="text" id="coupon-code-input" placeholder="Enter promo code" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; text-transform: uppercase;">
+                  <button onclick="applyCouponCode()" class="btn-dark" style="padding: 10px 16px; font-size: 12px;">APPLY</button>
                 </div>
               ` : ''}
-
+              ${window.AURA_STATE.appliedCoupon ? `
+                <div style="font-size: 12px; color: var(--success); font-weight: 700; margin-bottom: 16px;">
+                  ✓ Coupon '${escapeHtml(window.AURA_STATE.appliedCoupon.code)}' applied!
+                </div>
+              ` : ''}
               <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--text-sub);">
-                <span>Subtotal</span>
-                <span>${formatBDT(subtotal)}</span>
+                <span>Subtotal</span><span>${formatBDT(subtotal)}</span>
               </div>
               ${discount > 0 ? `
                 <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--success);">
-                  <span>Discount</span>
-                  <span>-${formatBDT(discount)}</span>
+                  <span>Discount</span><span>-${formatBDT(discount)}</span>
                 </div>
               ` : ''}
               <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 16px; color: var(--text-sub);">
-                <span>Pathao Courier Delivery</span>
+                <span>Courier Delivery</span>
                 <span>${deliveryFee === 0 ? '<strong style="color: var(--success)">FREE</strong>' : formatBDT(deliveryFee)}</span>
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-bottom: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
-                <span>Total</span>
-                <span>${formatBDT(total)}</span>
+                <span>Total</span><span>${formatBDT(total)}</span>
               </div>
               <button onclick="navigateTo('#checkout')" class="btn-dark" style="width: 100%; padding: 16px;">PROCEED TO CHECKOUT</button>
             </div>
@@ -2353,7 +2089,7 @@ function renderCartView(app) {
         <div style="text-align: center; padding: 80px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
           <i class="fa-solid fa-bag-shopping" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
           <h2 style="font-size: 22px; font-weight: 800;">YOUR BAG IS EMPTY</h2>
-          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Explore our signature oversized tees and architectural silhouettes.</p>
+          <p style="font-size: 13px; color: var(--text-sub); margin: 8px 0 24px;">Explore our live silhouettes and new drops.</p>
           <button onclick="navigateTo('#shop')" class="btn-dark">START SHOPPING</button>
         </div>
       `}
@@ -2361,7 +2097,6 @@ function renderCartView(app) {
   `;
 }
 
-// 5. CHECKOUT VIEW
 function renderCheckoutView(app) {
   const cart = window.AURA_STATE.cart;
   if (cart.length === 0) {
@@ -2369,15 +2104,18 @@ function renderCheckoutView(app) {
     return;
   }
   const { subtotal, discount, deliveryFee, total } = getCartTotals();
+  const s = window.AURA_STATE.settings || {};
+  const couriers = s.availableCouriers || ['Pathao Express', 'RedX Logistics', 'Steadfast Courier'];
+  const paymentMethods = s.availablePaymentMethods || ['Cash on Delivery', 'bKash Online Payment'];
+  const defaultAddr = window.AURA_STATE.addresses[0] || {};
+  const prof = window.AURA_STATE.profile || {};
 
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 80px;">
       <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 24px;">SECURE CHECKOUT</h1>
 
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;" class="checkout-layout">
-        <!-- Shipping & Payment Form -->
         <div>
-          <!-- Step 1: Contact & Address -->
           <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
             <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
               <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;">1</span>
@@ -2386,92 +2124,76 @@ function renderCheckoutView(app) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
               <div>
                 <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Full Name *</label>
-                <input type="text" id="chk-name" value="${window.AURA_STATE.user ? (window.AURA_STATE.user.displayName || '') : 'Tanvir Ahmed'}" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                <input type="text" id="chk-name" value="${escapeHtml(prof.name || '')}" placeholder="Your full name" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Phone Number *</label>
-                <input type="tel" id="chk-phone" value="+880 1712 345678" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                <input type="tel" id="chk-phone" value="${escapeHtml(prof.phone || '')}" placeholder="+880 1XXX XXXXXX" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
               </div>
             </div>
             <div style="margin-bottom: 16px;">
               <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Street Address / Apartment *</label>
-              <input type="text" id="chk-address" value="House 42, Road 11, Banani" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+              <input type="text" id="chk-address" value="${escapeHtml(defaultAddr.street || '')}" placeholder="House, Road, Area" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div>
                 <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">City / Region *</label>
                 <select id="chk-city" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-                  <option value="Dhaka">Dhaka (Inside City)</option>
-                  <option value="Chittagong">Chittagong</option>
-                  <option value="Sylhet">Sylhet</option>
-                  <option value="Rajshahi">Rajshahi</option>
-                  <option value="Other">Other Nationwide</option>
+                  ${['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Other'].map(c => `<option value="${c}" ${defaultAddr.city === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
               </div>
               <div>
                 <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">Courier Service</label>
                 <select id="chk-courier" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-                  <option value="Pathao Express">Pathao Express (Recommended)</option>
-                  <option value="RedX">RedX Logistics</option>
-                  <option value="Steadfast">Steadfast Courier</option>
+                  ${couriers.map(cr => `<option value="${escapeHtml(cr)}">${escapeHtml(cr)}</option>`).join('')}
                 </select>
               </div>
             </div>
           </div>
 
-          <!-- Step 2: Payment Method -->
           <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
             <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
               <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;">2</span>
               <span>PAYMENT METHOD</span>
             </h3>
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-              <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
-                <input type="radio" name="payment-method" value="bKash Online Payment" checked>
-                <div>
-                  <div style="font-size: 13px; font-weight: 800;">bKash Mobile Banking</div>
-                  <div style="font-size: 11px; color: var(--text-sub);">Instant automated confirmation via bKash payment gateway</div>
-                </div>
-              </label>
-              <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
-                <input type="radio" name="payment-method" value="Cash on Delivery">
-                <div>
-                  <div style="font-size: 13px; font-weight: 800;">Cash on Delivery (COD)</div>
-                  <div style="font-size: 11px; color: var(--text-sub);">Pay upon delivery after inspecting parcel with Pathao rider</div>
-                </div>
-              </label>
+              ${paymentMethods.map((pm, idx) => `
+                <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="payment-method" value="${escapeHtml(pm)}" ${idx === 0 ? 'checked' : ''}>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 800;">${escapeHtml(pm)}</div>
+                  </div>
+                </label>
+              `).join('')}
             </div>
-            <button onclick="handlePlaceOrder()" class="btn-dark" style="width: 100%; padding: 18px; font-size: 14px;">
+            <button id="place-order-btn" onclick="handlePlaceOrder()" class="btn-dark" style="width: 100%; padding: 18px; font-size: 14px;">
               <span>PLACE ORDER & CONFIRM</span>
               <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
 
-        <!-- Summary Column -->
         <div>
           <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
             <h3 style="font-size: 15px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;">ITEMS IN BAG</h3>
             <div style="max-height: 240px; overflow-y: auto; margin-bottom: 16px;">
               ${cart.map(item => `
                 <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center;">
-                  <img src="${item.image}" alt="${item.name}" style="width: 48px; height: 60px; object-fit: cover; border-radius: 4px;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+                  <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="width: 48px; height: 60px; object-fit: cover; border-radius: 4px;" onerror="this.src='/assets/img_hero_fashion.jpg'">
                   <div style="flex: 1;">
-                    <div style="font-size: 13px; font-weight: 800;">${item.name}</div>
-                    <div style="font-size: 11px; color: var(--text-sub);">${item.color.name} • ${item.size} × ${item.quantity}</div>
+                    <div style="font-size: 13px; font-weight: 800;">${escapeHtml(item.name)}</div>
+                    <div style="font-size: 11px; color: var(--text-sub);">${escapeHtml(item.color.name)} • ${escapeHtml(item.size)} × ${item.quantity}</div>
                   </div>
                   <div style="font-size: 13px; font-weight: 800;">${formatBDT(item.price * item.quantity)}</div>
                 </div>
               `).join('')}
             </div>
             <div style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-sub);">
-              <span>Subtotal</span>
-              <span>${formatBDT(subtotal)}</span>
+              <span>Subtotal</span><span>${formatBDT(subtotal)}</span>
             </div>
             ${discount > 0 ? `
               <div style="font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--success);">
-                <span>Discount</span>
-                <span>-${formatBDT(discount)}</span>
+                <span>Discount</span><span>-${formatBDT(discount)}</span>
               </div>
             ` : ''}
             <div style="font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 12px; color: var(--text-sub);">
@@ -2479,8 +2201,7 @@ function renderCheckoutView(app) {
               <span>${deliveryFee === 0 ? '<strong style="color: var(--success)">FREE</strong>' : formatBDT(deliveryFee)}</span>
             </div>
             <div style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 16px; font-weight: 900; display: flex; justify-content: space-between;">
-              <span>Total Payable</span>
-              <span>${formatBDT(total)}</span>
+              <span>Total Payable</span><span>${formatBDT(total)}</span>
             </div>
           </div>
         </div>
@@ -2489,109 +2210,161 @@ function renderCheckoutView(app) {
   `;
 }
 
-// 6. ACCOUNT & ORDERS VIEW
+// 6. PROFILE & RECENTLY VIEWED / ORDERS / ADDRESSES VIEW
 function renderAccountView(app, subTab) {
-  const user = window.AURA_STATE.user;
+  const activeTab = subTab || 'recent';
   const orders = window.AURA_STATE.orders;
+  const recentItems = getRecentlyViewedItems();
+  const retentionDays = getRecentlyViewedRetentionDays();
+  const profile = window.AURA_STATE.profile || { name: '', phone: '' };
+  const addresses = window.AURA_STATE.addresses || [];
 
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 80px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase;">AURA MEMBER PROFILE</h1>
-        ${user && !user.isAnonymous ? `
-          <button onclick="handleLogout()" class="cat-chip" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
-        ` : `
-          <button onclick="navigateTo('#login')" class="btn-dark" style="padding: 8px 16px; font-size: 12px;">SIGN IN / REGISTER</button>
-        `}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <h1 style="font-size: 28px; font-weight: 900; text-transform: uppercase;">YOUR PROFILE</h1>
+        <button onclick="syncLiveOrders()" class="cat-chip"><i class="fa-solid fa-rotate"></i> Refresh Live Orders</button>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 3fr; gap: 32px;" class="account-layout">
-        <!-- Sidebar -->
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px;">
           <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
             <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;">
-              ${user ? (user.email ? user.email.slice(0, 2).toUpperCase() : 'AU') : 'AU'}
+              ${escapeHtml((profile.name || 'AU').slice(0, 2).toUpperCase())}
             </div>
             <div>
-              <div style="font-size: 14px; font-weight: 800;">${user ? (user.displayName || 'AURA Member') : 'AURA Member'}</div>
-              <div style="font-size: 12px; color: var(--text-sub);">${user ? (user.email || 'guest@aura.fashion') : 'Guest Session'}</div>
+              <div style="font-size: 14px; font-weight: 800;">${escapeHtml(profile.name || 'AURA Shopper')}</div>
+              <div style="font-size: 12px; color: var(--text-sub);">${escapeHtml(profile.phone || 'Guest Session')}</div>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <button onclick="navigateTo('#account/orders')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${subTab === 'orders' || !subTab ? 'background: var(--primary); color: #fff;' : ''}">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button onclick="navigateTo('#account/recent')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${activeTab === 'recent' ? 'background: var(--primary); color: #fff;' : ''}">
+              <i class="fa-solid fa-clock-rotate-left"></i> Recently Viewed (${recentItems.length})
+            </button>
+            <button onclick="navigateTo('#account/orders')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${activeTab === 'orders' ? 'background: var(--primary); color: #fff;' : ''}">
               <i class="fa-solid fa-box-open"></i> My Orders (${orders.length})
             </button>
-            <button onclick="navigateTo('#account/addresses')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${subTab === 'addresses' ? 'background: var(--primary); color: #fff;' : ''}">
-              <i class="fa-solid fa-location-dot"></i> Saved Addresses
-            </button>
-            <button onclick="navigateTo('#account/recent')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start;">
-              <i class="fa-solid fa-clock-rotate-left"></i> Recently Viewed
+            <button onclick="navigateTo('#account/addresses')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start; ${activeTab === 'addresses' ? 'background: var(--primary); color: #fff;' : ''}">
+              <i class="fa-solid fa-location-dot"></i> Saved Addresses (${addresses.length})
             </button>
             <button onclick="navigateTo('#wishlist')" class="cat-chip" style="width: 100%; border: none; justify-content: flex-start;">
-              <i class="fa-solid fa-heart"></i> My Wishlist
+              <i class="fa-solid fa-heart"></i> My Wishlist (${window.AURA_STATE.wishlist.length})
             </button>
           </div>
         </div>
 
-        <!-- Content Area -->
         <div>
-          ${subTab === 'addresses' ? `
+          ${activeTab === 'recent' ? `
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+                <div>
+                  <h3 style="font-size: 18px; font-weight: 800; text-transform: uppercase;">RECENTLY VIEWED ITEMS (${recentItems.length})</h3>
+                  <p style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">Items you clicked are saved here and auto-delete after <strong>${retentionDays} days</strong>.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <label style="font-size: 12px; font-weight: 700; color: var(--text-sub);">Auto-delete after (days):</label>
+                  <input type="number" id="rv-retention-input" min="1" max="3650" value="${retentionDays}" style="width: 82px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 700;">
+                  <button onclick="saveRetentionDaysPreference(document.getElementById('rv-retention-input').value)" class="btn-dark" style="padding: 8px 14px; font-size: 11px;">SAVE</button>
+                  ${recentItems.length > 0 ? `<button onclick="clearRecentlyViewed()" class="cat-chip" style="padding: 8px 12px; font-size: 11px; color: var(--danger);">CLEAR ALL</button>` : ''}
+                </div>
+              </div>
+
+              ${recentItems.length > 0 ? `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px;">
+                  ${recentItems.map(item => {
+                    const ageDays = Math.floor((Date.now() - new Date(item.viewedAt).getTime()) / (24 * 60 * 60 * 1000));
+                    const daysLeft = Math.max(0, retentionDays - ageDays);
+                    return `
+                      <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); display: flex; flex-direction: column;">
+                        <div style="position: relative; aspect-ratio: 4/5; background: #18181b; cursor: pointer;" onclick="navigateTo('#product/${escapeHtml(item.id)}')">
+                          <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/img_hero_fashion.jpg'">
+                          <button onclick="event.stopPropagation(); removeRecentlyViewedItem('${escapeHtml(item.id)}')" title="Remove" style="position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.92); color: var(--text-main); font-size: 12px;">
+                            <i class="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                        <div style="padding: 12px; cursor: pointer;" onclick="navigateTo('#product/${escapeHtml(item.id)}')">
+                          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-sub);">${escapeHtml(item.category || 'AURA')}</div>
+                          <div style="font-size: 13px; font-weight: 800; margin: 4px 0;">${escapeHtml(item.name)}</div>
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                            <strong style="font-size: 14px;">${formatBDT(item.price)}</strong>
+                            <span style="font-size: 10px; color: var(--text-muted);">Expires in ${daysLeft}d</span>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : `
+                <div style="text-align: center; padding: 48px 20px;">
+                  <i class="fa-solid fa-clock-rotate-left" style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                  <p style="font-size: 14px; color: var(--text-sub);">You haven't viewed any products yet.</p>
+                  <button onclick="navigateTo('#shop')" class="btn-dark" style="margin-top: 16px;">BROWSE CATALOGUE</button>
+                </div>
+              `}
+            </div>
+          ` : activeTab === 'addresses' ? `
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
               <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">SAVED DELIVERY ADDRESSES</h3>
-              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <strong>Default Residence</strong>
-                  <span style="font-size: 11px; background: var(--surface-sub); padding: 2px 8px; border-radius: 4px;">Primary</span>
+              ${addresses.length > 0 ? addresses.map((addr, idx) => `
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong>${escapeHtml(addr.city || 'Delivery Address')}</strong>
+                    <p style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">${escapeHtml(addr.street)}</p>
+                  </div>
+                  <button onclick="removeSavedAddress(${idx})" class="cat-chip" style="color: var(--danger); font-size: 11px;">Remove</button>
                 </div>
-                <p style="font-size: 13px; color: var(--text-sub);">House 42, Road 11, Banani, Dhaka-1213<br>Contact: +880 1712 345678</p>
-              </div>
+              `).join('') : `
+                <p style="font-size: 13px; color: var(--text-sub);">No saved delivery addresses yet. Addresses you use at checkout are saved automatically here.</p>
+              `}
             </div>
           ` : `
-            <!-- Orders List -->
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
               <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">ORDER HISTORY & LIVE TRACKING</h3>
               ${orders.length > 0 ? `
                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                  ${orders.map(order => `
-                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
-                        <div>
-                          <span style="font-size: 14px; font-weight: 900;">ORDER #${order.id}</span>
-                          <span style="font-size: 12px; color: var(--text-sub); margin-left: 8px;">${order.courier || 'Pathao Express'} • ${order.trackingId || 'PTH-99214'}</span>
+                  ${orders.map(order => {
+                    const st = String(order.status || 'confirmed').toLowerCase();
+                    const statusLabel = st.charAt(0).toUpperCase() + st.slice(1);
+                    const statusOrder = ['confirmed', 'processing', 'packed', 'shipped', 'delivered'];
+                    const currentIdx = statusOrder.indexOf(st);
+                    return `
+                      <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                          <div>
+                            <span style="font-size: 14px; font-weight: 900;">ORDER #${escapeHtml(order.id)}</span>
+                            <span style="font-size: 12px; color: var(--text-sub); margin-left: 8px;">${escapeHtml(order.courier || 'Pathao Express')} • ${escapeHtml(order.trackingId || '')}</span>
+                          </div>
+                          <span class="badge-tag" style="position: static; background: ${st === 'delivered' ? 'var(--success)' : st === 'cancelled' ? 'var(--danger)' : 'var(--primary)'};">
+                            ${escapeHtml(statusLabel)}
+                          </span>
                         </div>
-                        <span class="badge-tag" style="position: static; background: ${order.status === 'Delivered' ? 'var(--success)' : order.status === 'Cancelled' ? 'var(--danger)' : 'var(--primary)'};">
-                          ${order.status || 'Processing'}
-                        </span>
-                      </div>
-                      
-                      <!-- Timeline Progress Bar -->
-                      <div style="display: flex; justify-content: space-between; align-items: center; position: relative; margin: 20px 0 24px;">
-                        <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: var(--border); z-index: 1;"></div>
-                        ${['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'].map((st, i) => {
-                          const statusOrder = ['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'];
-                          const currentIdx = statusOrder.indexOf(order.status || 'Confirmed');
-                          const reached = currentIdx >= i;
-                          return `
-                            <div style="position: relative; z-index: 2; text-align: center;">
-                              <div style="width: 24px; height: 24px; border-radius: 50%; background: ${reached ? 'var(--primary)' : 'var(--surface-sub)'}; color: ${reached ? '#fff' : 'var(--text-sub)'}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; margin: 0 auto 4px; border: 2px solid #fff;">
-                                ${reached ? '✓' : (i + 1)}
-                              </div>
-                              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${reached ? 'var(--text-main)' : 'var(--text-muted)'};">${st}</div>
-                            </div>
-                          `;
-                        }).join('')}
-                      </div>
 
-                      <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="font-size: 13px; color: var(--text-sub);">
-                          Delivery to: ${order.customerName || 'Customer'} (${order.deliveryAddress || 'Dhaka'})
-                        </div>
-                        <div style="font-size: 17px; font-weight: 900;">
-                          ${formatBDT(order.total)}
+                        ${st !== 'cancelled' ? `
+                          <div style="display: flex; justify-content: space-between; align-items: center; position: relative; margin: 20px 0 24px;">
+                            <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: var(--border); z-index: 1;"></div>
+                            ${statusOrder.map((step, i) => {
+                              const reached = currentIdx >= i;
+                              return `
+                                <div style="position: relative; z-index: 2; text-align: center;">
+                                  <div style="width: 24px; height: 24px; border-radius: 50%; background: ${reached ? 'var(--primary)' : 'var(--surface-sub)'}; color: ${reached ? '#fff' : 'var(--text-sub)'}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; margin: 0 auto 4px; border: 2px solid #fff;">
+                                    ${reached ? '✓' : (i + 1)}
+                                  </div>
+                                  <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${reached ? 'var(--text-main)' : 'var(--text-muted)'};">${step}</div>
+                                </div>
+                              `;
+                            }).join('')}
+                          </div>
+                        ` : ''}
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px;">
+                          <div style="font-size: 13px; color: var(--text-sub);">
+                            Delivery to: ${escapeHtml(order.customerName)} (${escapeHtml(order.deliveryAddress)})
+                          </div>
+                          <div style="font-size: 17px; font-weight: 900;">${formatBDT(order.total)}</div>
                         </div>
                       </div>
-                    </div>
-                  `).join('')}
+                    `;
+                  }).join('')}
                 </div>
               ` : `
                 <div style="text-align: center; padding: 40px 20px;">
@@ -2608,54 +2381,15 @@ function renderAccountView(app, subTab) {
   `;
 }
 
-// 7. LOGIN & REGISTER VIEW
-function renderLoginView(app) {
-  app.innerHTML = `
-    <div class="container" style="max-width: 480px; padding: 60px 24px 100px;">
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 36px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <h2 style="font-size: 24px; font-weight: 900; letter-spacing: -0.03em;">AURA ACCOUNT</h2>
-          <p style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">Sign in or create account to track orders and save drops.</p>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-          <button id="tab-login" onclick="toggleAuthTab('login')" class="cat-chip active" style="flex: 1; justify-content: center;">SIGN IN</button>
-          <button id="tab-register" onclick="toggleAuthTab('register')" class="cat-chip" style="flex: 1; justify-content: center;">REGISTER</button>
-        </div>
-
-        <form id="auth-form" onsubmit="handleAuthSubmit(event)">
-          <div id="register-fields" style="display: none;">
-            <div style="margin-bottom: 14px;">
-              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Full Name</label>
-              <input type="text" id="auth-name" placeholder="Tanvir Ahmed" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-            </div>
-            <div style="margin-bottom: 14px;">
-              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Phone Number</label>
-              <input type="tel" id="auth-phone" placeholder="+880 1712 345678" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-            </div>
-          </div>
-
-          <div style="margin-bottom: 14px;">
-            <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Email Address</label>
-            <input type="email" id="auth-email" placeholder="member@aura.fashion" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
-            <input type="password" id="auth-password" placeholder="••••••••" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-          </div>
-
-          <button type="submit" id="auth-submit-btn" class="btn-dark" style="width: 100%; padding: 14px;">SIGN IN</button>
-        </form>
-      </div>
-    </div>
-  `;
+function removeSavedAddress(index) {
+  window.AURA_STATE.addresses.splice(index, 1);
+  localStorage.setItem('aura_addresses', JSON.stringify(window.AURA_STATE.addresses));
+  renderCurrentView();
 }
 
-// 8. WISHLIST VIEW
 function renderWishlistView(app) {
   const wishlistIds = window.AURA_STATE.wishlist;
-  const products = window.AURA_STATE.products.filter(p => wishlistIds.includes(p.id));
+  const products = window.AURA_STATE.products.filter(p => wishlistIds.includes(p.id) && p.published !== false);
 
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 80px;">
@@ -2676,7 +2410,6 @@ function renderWishlistView(app) {
   `;
 }
 
-// 9. LOOKBOOK VIEW
 function renderLookbookView(app) {
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 80px;">
@@ -2698,7 +2431,6 @@ function renderLookbookView(app) {
   `;
 }
 
-// 10. JOURNAL VIEW
 function renderJournalView(app) {
   app.innerHTML = `
     <div class="container" style="padding: 32px 24px 80px; max-width: 860px;">
@@ -2716,34 +2448,30 @@ function renderJournalView(app) {
       <article style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 36px;">
         <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-bottom: 6px;">STYLE GUIDE • NOV 02, 2026</div>
         <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 12px;">HOW TO STYLE OVERSIZED SILHOUETTES WITHOUT LOOKING DISPROPORTIONATE</h2>
-        <p style="font-size: 14px; color: var(--text-sub); line-height: 1.7;">The key to wearing oversized silhouettes gracefully is tension and contrast. If your top is wide and boxy with dropped shoulders, pair it with structured pants that cinch at the ankle, creating a clean break right above your footwear. Add a single focused accessory like our matte steel pendant to draw the eye vertically.</p>
+        <p style="font-size: 14px; color: var(--text-sub); line-height: 1.7;">The key to wearing oversized silhouettes gracefully is tension and contrast. If your top is wide and boxy with dropped shoulders, pair it with structured pants that cinch at the ankle, creating a clean break right above your footwear. Add a single focused accessory to draw the eye vertically.</p>
       </article>
     </div>
   `;
 }
 
-// -------------------------------------------------------------
-// HELPER COMPONENT RENDERERS
-// -------------------------------------------------------------
-
 function renderProductCardHtml(p) {
   const isWish = window.AURA_STATE.wishlist.includes(p.id);
-  const totalStock = p.stockPerSize ? Object.values(p.stockPerSize).reduce((a, b) => a + b, 0) : 10;
-  const isOut = totalStock === 0;
+  const totalStock = p.stockPerSize ? Object.values(p.stockPerSize).reduce((a, b) => a + Number(b || 0), 0) : 0;
+  const isOut = totalStock <= 0;
 
   return `
-    <div class="product-card" onclick="navigateTo('#product/${p.id}')" style="cursor: pointer;">
+    <div class="product-card" onclick="navigateTo('#product/${escapeHtml(p.id)}')" style="cursor: pointer;">
       <div class="product-img-box">
-        <img src="${p.image}" alt="${p.name}" class="product-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
-        ${p.badge ? `<span class="badge-tag ${p.isDrop ? 'drop' : ''}">${p.badge}</span>` : ''}
-        <button class="wishlist-toggle ${isWish ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">
+        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="product-img" onerror="this.src='/assets/img_hero_fashion.jpg'">
+        ${p.badge ? `<span class="badge-tag ${p.isDrop ? 'drop' : ''}">${escapeHtml(p.badge)}</span>` : ''}
+        <button class="wishlist-toggle ${isWish ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${escapeHtml(p.id)}')">
           <i class="fa-${isWish ? 'solid' : 'regular'} fa-heart"></i>
         </button>
       </div>
       <div class="product-info">
-        <div class="product-cat">${p.category}</div>
-        <div class="product-name">${p.name}</div>
-        <div class="product-tagline">${p.tagline}</div>
+        <div class="product-cat">${escapeHtml(p.category)}</div>
+        <div class="product-name">${escapeHtml(p.name)}</div>
+        <div class="product-tagline">${escapeHtml(p.tagline)}</div>
         <div class="product-footer">
           <div class="price-box">
             <span class="price-current">${formatBDT(p.price)}</span>
@@ -2758,13 +2486,12 @@ function renderProductCardHtml(p) {
   `;
 }
 
-// Countdown Timer Handler
 function startCountdownTimer() {
   let secondsLeft = 7 * 3600 + 48 * 60 + 19;
   const hEl = document.getElementById('cd-hours');
   const mEl = document.getElementById('cd-mins');
   const sEl = document.getElementById('cd-secs');
-  
+
   if (window.timerInterval) clearInterval(window.timerInterval);
   window.timerInterval = setInterval(() => {
     secondsLeft--;
@@ -2777,10 +2504,6 @@ function startCountdownTimer() {
     if (sEl) sEl.textContent = String(s).padStart(2, '0');
   }, 1000);
 }
-
-// -------------------------------------------------------------
-// EVENT HANDLERS
-// -------------------------------------------------------------
 
 function filterCategory(cat) {
   activeCategory = cat;
@@ -2811,14 +2534,14 @@ function selectSize(productId, size) {
   selectedSize = size;
   const product = window.AURA_STATE.products.find(p => p.id === productId);
   if (!product) return;
-  const stock = (product.stockPerSize && product.stockPerSize[size] !== undefined) ? product.stockPerSize[size] : 10;
-  
+  const stock = (product.stockPerSize && product.stockPerSize[size] !== undefined) ? Number(product.stockPerSize[size]) : 0;
+
   const lbl = document.getElementById('size-label');
   if (lbl) lbl.textContent = size;
-  
+
   const fb = document.getElementById('stock-feedback');
   if (fb) {
-    if (stock === 0) {
+    if (stock <= 0) {
       fb.textContent = 'OUT OF STOCK';
       fb.style.color = 'var(--danger)';
     } else if (stock < 6) {
@@ -2829,22 +2552,14 @@ function selectSize(productId, size) {
       fb.style.color = 'var(--success)';
     }
   }
-
-  // Update button state
-  document.querySelectorAll('.cat-chip').forEach(btn => {
-    if (btn.textContent.trim() === size) {
-      btn.classList.add('active');
-    } else if (['S', 'M', 'L', 'XL', 'XXL', 'One Size'].includes(btn.textContent.trim())) {
-      btn.classList.remove('active');
-    }
-  });
+  renderCurrentView();
 }
 
 function handleAddToCart(productId) {
   const product = window.AURA_STATE.products.find(p => p.id === productId);
   if (!product) return;
-  const color = selectedColor || (product.colors && product.colors[0]) || { name: 'Standard', hex: '#111' };
-  const size = selectedSize || (product.sizes && product.sizes[0]) || 'L';
+  const color = selectedColor || (product.colors && product.colors[0]) || { name: 'Standard', hex: '#111111' };
+  const size = selectedSize || (product.sizes && product.sizes[0]) || 'M';
   addToCart(product, color, size, selectedQty);
 }
 
@@ -2860,13 +2575,14 @@ function applyCouponCode() {
   const input = document.getElementById('coupon-code-input');
   if (!input) return;
   const code = input.value.trim().toUpperCase();
-  const coupon = window.AURA_STATE.coupons.find(c => c.code === code);
-  
+  const coupons = (window.AURA_STATE.settings && window.AURA_STATE.settings.coupons) || [];
+  const coupon = coupons.find(c => c.code === code);
+
   if (!coupon) {
-    showToast("Invalid coupon code");
+    showToast('Invalid coupon code');
     return;
   }
-  
+
   const totals = getCartTotals();
   if (totals.subtotal < coupon.minSpend) {
     showToast(`Minimum order of ৳${coupon.minSpend} required for this coupon`);
@@ -2878,62 +2594,54 @@ function applyCouponCode() {
   renderCurrentView();
 }
 
-async async function handlePlaceOrder() {
+async function handlePlaceOrder() {
   const cart = window.AURA_STATE.cart;
   if (cart.length === 0) {
-    showToast("Your bag is empty");
+    showToast('Your bag is empty');
     return;
   }
-  const nameInput = document.getElementById("chk-name");
-  const phoneInput = document.getElementById("chk-phone");
-  const addressInput = document.getElementById("chk-address");
-  const citySelect = document.getElementById("chk-city");
-  const courierSelect = document.getElementById("chk-courier");
+  const nameInput = document.getElementById('chk-name');
+  const phoneInput = document.getElementById('chk-phone');
+  const addressInput = document.getElementById('chk-address');
+  const citySelect = document.getElementById('chk-city');
+  const courierSelect = document.getElementById('chk-courier');
   const paymentRadio = document.querySelector('input[name="payment-method"]:checked');
 
-  const name = nameInput ? nameInput.value.trim() : "";
-  const phone = phoneInput ? phoneInput.value.trim() : "";
-  const street = addressInput ? addressInput.value.trim() : "";
-  const city = citySelect ? citySelect.value : "Dhaka";
-  const courier = courierSelect ? courierSelect.value : "Pathao Express";
-  const paymentMethod = paymentRadio ? paymentRadio.value : "Cash on Delivery";
+  const name = nameInput ? nameInput.value.trim() : '';
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  const street = addressInput ? addressInput.value.trim() : '';
+  const city = citySelect ? citySelect.value : 'Dhaka';
+  const courier = courierSelect ? courierSelect.value : 'Pathao Express';
+  const paymentMethod = paymentRadio ? paymentRadio.value : 'Cash on Delivery';
 
   if (!name || !phone || !street) {
-    showToast("Please fill in all required delivery details");
+    showToast('Please fill in all required delivery details');
     return;
   }
 
   const itemsPayload = cart.map(item => ({
-    product_id: item.id,
+    product_id: item.productId,
     size: item.size,
     color: item.color.name,
     quantity: item.quantity
   }));
 
-  const idempotencyKey = "aura_order_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
-  showToast("Processing order securely...");
+  const idempotencyKey = 'aura_order_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  const btn = document.getElementById('place-order-btn');
+  if (btn) btn.disabled = true;
+  showToast('Saving order to AURA live ledger...');
 
   try {
-    let token = "guest_token";
-    if (typeof supabase !== "undefined" && supabase) {
-      const session = await ensureAuthSession();
-      if (session) token = session.access_token;
-    }
-
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
-      },
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        idempotencyKey: idempotencyKey,
+        idempotencyKey,
         customerName: name,
-        customerEmail: window.AURA_STATE.user ? window.AURA_STATE.user.email : null,
         customerPhone: phone,
-        shippingAddress: { street: street, city: city },
-        courier: courier,
-        paymentMethod: paymentMethod,
+        shippingAddress: { street, city },
+        courier,
+        paymentMethod,
         couponCode: window.AURA_STATE.appliedCoupon ? window.AURA_STATE.appliedCoupon.code : null,
         items: itemsPayload
       })
@@ -2941,145 +2649,48 @@ async async function handlePlaceOrder() {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || "Order checkout error");
+      showToast(data.error || 'Order checkout error');
       return;
     }
 
-    const placedOrder = {
+    const placedOrder = data.order || {
       id: data.order_id,
       customerName: name,
-      deliveryAddress: street + ", " + city,
-      courier: courier,
-      trackingId: "PTH-" + Math.floor(Math.random() * 89999 + 10000),
-      status: "Confirmed",
+      customerPhone: phone,
+      deliveryAddress: `${street}, ${city}`,
+      courier,
+      trackingId: `AURA-TRK-${data.order_id}`,
+      status: 'confirmed',
       total: data.total_amount,
       createdAt: new Date().toISOString(),
       items: [...cart]
     };
 
+    window.AURA_STATE.profile = { name, phone };
+    localStorage.setItem('aura_profile', JSON.stringify(window.AURA_STATE.profile));
+
+    if (!window.AURA_STATE.addresses.some(a => a.street === street && a.city === city)) {
+      window.AURA_STATE.addresses.unshift({ street, city });
+      localStorage.setItem('aura_addresses', JSON.stringify(window.AURA_STATE.addresses.slice(0, 5)));
+    }
+
     window.AURA_STATE.cart = [];
-    localStorage.removeItem("aura_cart");
+    window.AURA_STATE.appliedCoupon = null;
+    localStorage.removeItem('aura_cart');
     window.AURA_STATE.orders.unshift(placedOrder);
-    localStorage.setItem("aura_orders", JSON.stringify(window.AURA_STATE.orders));
+    localStorage.setItem('aura_orders', JSON.stringify(window.AURA_STATE.orders));
 
     updateCounters();
-    showToast("Order Placed Successfully! #" + data.order_id);
-    navigateTo("#account/orders");
+    await loadLiveStorefront(false);
+    showToast('Order Placed Successfully! #' + placedOrder.id);
+    navigateTo('#account/orders');
   } catch (err) {
-    showToast("Error connecting to checkout: " + err.message);
-  }
-}
-function dummyOldPlaceOrder() {
-  const name = document.getElementById('chk-name').value.trim();
-  const phone = document.getElementById('chk-phone').value.trim();
-  const address = document.getElementById('chk-address').value.trim();
-  const city = document.getElementById('chk-city').value;
-  const courier = document.getElementById('chk-courier').value;
-  const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
-
-  if (!name || !phone || !address) {
-    showToast("Please complete all shipping details");
-    return;
-  }
-
-  const { subtotal, discount, deliveryFee, total } = getCartTotals();
-  const orderId = 'AURA-' + Math.floor(1000 + Math.random() * 9000);
-  const trackingId = 'PTH-DH-' + Math.floor(100000 + Math.random() * 900000);
-
-  const newOrder = {
-    id: orderId,
-    userId: window.AURA_STATE.user ? window.AURA_STATE.user.uid : 'guest',
-    customerName: name,
-    customerPhone: phone,
-    deliveryAddress: `${address}, ${city}`,
-    courier: courier,
-    trackingId: trackingId,
-    paymentMethod: paymentMethod,
-    items: [...window.AURA_STATE.cart],
-    subtotal: subtotal,
-    discount: discount,
-    deliveryFee: deliveryFee,
-    total: total,
-    status: 'Confirmed',
-    createdAt: Date.now()
-  };
-
-  // Clear Cart
-  window.AURA_STATE.cart = [];
-  window.AURA_STATE.appliedCoupon = null;
-  localStorage.setItem('aura_cart', '[]');
-  updateCounters();
-
-  // Save to Firebase
-  await createFirebaseOrder(newOrder);
-
-  showToast(`Order #${orderId} Confirmed!`);
-  navigateTo('#account/orders');
-}
-
-// Auth Handlers
-function toggleAuthTab(tab) {
-  const regFields = document.getElementById('register-fields');
-  const tabLogin = document.getElementById('tab-login');
-  const tabRegister = document.getElementById('tab-register');
-  const btn = document.getElementById('auth-submit-btn');
-
-  if (tab === 'register') {
-    regFields.style.display = 'block';
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    btn.textContent = 'CREATE AURA ACCOUNT';
-  } else {
-    regFields.style.display = 'none';
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    btn.textContent = 'SIGN IN';
+    showToast('Error connecting to checkout: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const isRegister = document.getElementById('tab-register').classList.contains('active');
-  const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : '';
-
-  if (!auth) {
-    showToast("Firebase Auth unavailable, operating in demo session");
-    navigateTo('#account');
-    return;
-  }
-
-  try {
-    if (isRegister) {
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
-      if (name && cred.user) {
-        await cred.user.updateProfile({ displayName: name });
-      }
-      showToast("Welcome to AURA!");
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-      showToast("Signed in successfully");
-    }
-    navigateTo('#account');
-  } catch (err) {
-    showToast(err.message || "Authentication failed");
-  }
-}
-
-async function handleLogout() {
-  if (auth) {
-    await auth.signOut();
-  }
-  window.AURA_STATE.user = null;
-  showToast("Signed out");
-  navigateTo('#home');
-}
-
-// -------------------------------------------------------------
-
-// MAIN ROUTING DISPATCHER
-// -------------------------------------------------------------
 function renderCurrentView() {
   const route = getRoute();
   const app = document.getElementById('app-main');
@@ -3111,10 +2722,6 @@ function renderCurrentView() {
     case 'account':
       renderAccountView(app, route.sub);
       break;
-    case 'login':
-    case 'register':
-      renderLoginView(app);
-      break;
     case 'lookbook':
       renderLookbookView(app);
       break;
@@ -3126,21 +2733,21 @@ function renderCurrentView() {
   }
 }
 
-
-// Application Boot
-window.addEventListener(DOMContentLoaded, async () => {
+window.addEventListener('DOMContentLoaded', async () => {
   window.renderCurrentView = renderCurrentView;
+  window.addEventListener('hashchange', renderCurrentView);
+  window.addEventListener('focus', () => {
+    loadLiveStorefront(true);
+    syncLiveOrders();
+  });
 
-  // Initialize Anonymous Session quietly in background
-  if (supabase) {
-    await ensureAuthSession();
-  }
-
-  // Hash Routing Listener
-  window.addEventListener(hashchange, renderCurrentView);
-
-  // Initial Render
   renderCurrentView();
+  await loadLiveStorefront(true);
+  await syncLiveOrders();
+
+  setInterval(() => {
+    loadLiveStorefront(true);
+  }, 30000);
 });
 </script>
 </body>

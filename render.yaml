@@ -10,17 +10,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Admin login password (server also reads AURA-admin, AURA_ADMIN, or ADMIN_PASSWORD dynamically)
+      # Admin login password (server dynamically reads AURA-admin, AURA_ADMIN_PASSWORD, AURA_ADMIN, or ADMIN_PASSWORD)
       - key: AURA_ADMIN_PASSWORD
         sync: false
       - key: SESSION_SECRET
         generateValue: true
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
       - key: GITHUB_TOKEN
         sync: false
       - key: GITHUB_OWNER
@@ -29,5 +23,5 @@ services:
         sync: false
       - key: GITHUB_MAIN_BRANCH
         value: main
-      - key: GITHUB_DATA_BRANCH
-        value: aura-data
+      - key: GITHUB_PRODUCT_BRANCH
+        value: aura-product
