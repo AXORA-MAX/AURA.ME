@@ -44,7 +44,7 @@ A complete, production-ready luxury fashion e-commerce application powered by **
    - **Health Check Path**: `/health`
 4. In the **Environment Variables** tab, add:
    - `NODE_ENV`: `production`
-   - `AURA_ADMIN_PASSWORD`: Your secret administrator password (e.g. `your_secret_pass_2026`)
+   - `AURA_ADMIN_PASSWORD` (or `AURA-admin`, `AURA_ADMIN`, or `ADMIN_PASSWORD`): Your secret administrator password. The Node.js server reads these dynamically from `process.env` at request time (using `process.env['AURA-admin']` bracket notation for hyphenated keys) with no hardcoded fallback.
    - `SESSION_SECRET`: A 32+ character random string for cookie signing
    - `SUPABASE_URL`: `https://your-project.supabase.co`
    - `SUPABASE_ANON_KEY`: Your Supabase anon key
@@ -55,6 +55,7 @@ A complete, production-ready luxury fashion e-commerce application powered by **
    - `GITHUB_MAIN_BRANCH`: `main`
    - `GITHUB_DATA_BRANCH`: `aura-data`
 5. Click **Deploy Web Service**.
+6. **Updating the Admin Password Later**: Because this is a Node.js Web Service (`node server.js`, not a purely static site), Render injects environment variables into `process.env` at runtime. Whenever you edit `AURA-admin` or `AURA_ADMIN_PASSWORD` in Render's **Environment** tab and click **Save Changes**, Render automatically restarts/redeploys the service with the new password—no code changes required.
 
 ---
 

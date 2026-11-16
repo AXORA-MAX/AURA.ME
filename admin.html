@@ -475,6 +475,7 @@
           <label class="form-label">Master Admin Password</label>
           <input type="password" id="admin-pass-input" placeholder="••••••••••••" required class="form-input" style="font-size: 15px; letter-spacing: 0.1em; text-align: center;" autofocus>
         </div>
+        <div id="login-error-msg" role="alert" style="display: none; margin-bottom: 14px; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(185, 28, 28, 0.1); border: 1px solid rgba(185, 28, 28, 0.3); color: var(--danger); font-size: 12px; font-weight: 700; text-align: left;"></div>
         <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; padding: 14px; justify-content: center;">
           <span>UNLOCK DASHBOARD</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -595,7 +596,7 @@
     // Authentication Checks
     async function checkExistingSession() {
       try {
-        const res = await fetch('/api/admin/check-session');
+        const res = await fetch('/api/admin/check-session', { credentials: 'same-origin' });
         const data = await res.json();
         if (data.authenticated) {
           ADMIN_STATE.authenticated = true;
@@ -614,12 +615,18 @@
       e.preventDefault();
       const pass = document.getElementById('admin-pass-input').value;
       const btn = document.getElementById('login-btn');
+      const errorBox = document.getElementById('login-error-msg');
+      if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+      }
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> VERIFYING...';
 
       try {
         const res = await fetch('/api/admin/login', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pass })
         });
@@ -631,10 +638,20 @@
           showToast('Welcome to AURA Admin Portal');
           loadAllData();
         } else {
-          showToast(data.error || 'Authentication Failed');
+          const msg = data.error || 'Authentication Failed';
+          if (errorBox) {
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+          }
+          showToast(msg);
         }
       } catch (err) {
-        showToast('Connection error: ' + err.message);
+        const msg = 'Connection error: ' + err.message;
+        if (errorBox) {
+          errorBox.textContent = msg;
+          errorBox.style.display = 'block';
+        }
+        showToast(msg);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<span>UNLOCK DASHBOARD</span> <i class="fa-solid fa-arrow-right"></i>';
@@ -642,8 +659,13 @@
     }
 
     async function handleAdminLogout() {
-      await fetch('/api/admin/logout', { method: 'POST' });
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': ADMIN_STATE.csrfToken || '' }
+      });
       ADMIN_STATE.authenticated = false;
+      ADMIN_STATE.csrfToken = '';
       document.getElementById('login-overlay').style.display = 'flex';
       document.getElementById('admin-pass-input').value = '';
       showToast('Logged out successfully');
@@ -881,7 +903,11 @@
         try {
           const res = await fetch('/api/admin/upload-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': ADMIN_STATE.csrfToken || ''
+            },
             body: JSON.stringify({
               fileName: file.name,
               base64Data: reader.result
@@ -966,7 +992,11 @@
         try {
           const res = await fetch('/api/admin/cancel-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': ADMIN_STATE.csrfToken || ''
+            },
             body: JSON.stringify({ orderId: orderId, adminNotes: 'Cancelled by Admin Portal' })
           });
           const data = await res.json();

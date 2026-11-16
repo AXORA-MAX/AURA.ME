@@ -13,28 +13,69 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { createClient } = require('@supabase/supabase-js');
+
+let createClient = null;
+try {
+  ({ createClient } = require('@supabase/supabase-js'));
+} catch (e) {
+  console.warn('Optional @supabase/supabase-js dependency not installed locally:', e.message);
+}
 
 // Render assigns process.env.PORT dynamically. In local container, nginx listens on 8080 and proxies to 3000.
 const PORT = (process.env.PORT && process.env.PORT !== '8080') ? parseInt(process.env.PORT, 10) : 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const SESSION_SECRET = process.env.SESSION_SECRET || 'aura_default_session_secret_change_in_production_32char';
-const ADMIN_PASSWORD = process.env.AURA_ADMIN_PASSWORD || 'aura_admin_2026';
 
-// Supabase Clients
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aura-placeholder.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.service_placeholder';
+// Supported admin password environment variable names, evaluated dynamically per request.
+// Includes bracket-notation access for Render's hyphenated `AURA-admin` as well as underscore variants.
+const ADMIN_PASSWORD_ENV_KEYS = [
+  'AURA-admin',
+  'AURA_ADMIN_PASSWORD',
+  'AURA_ADMIN',
+  'ADMIN_PASSWORD'
+];
 
-let supabaseAdmin = null;
-try {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+// Ephemeral per-process fallback secret if SESSION_SECRET is unset (never a hardcoded string literal)
+const EPHEMERAL_SESSION_SECRET = crypto.randomBytes(32).toString('hex');
+const COMPARE_HMAC_KEY = crypto.randomBytes(32);
+
+function getConfiguredAdminPassword() {
+  for (const key of ADMIN_PASSWORD_ENV_KEYS) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.length > 0) {
+      return { password: value, envKey: key };
+    }
+  }
+  return null;
+}
+
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET;
+  return (typeof secret === 'string' && secret.length > 0) ? secret : EPHEMERAL_SESSION_SECRET;
+}
+
+let cachedSupabaseAdminKey = '';
+let cachedSupabaseAdminClient = null;
+function getSupabaseAdmin() {
+  if (!createClient) return null;
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) return null;
+
+  const cacheKey = `${url}::${serviceRoleKey}`;
+  if (cachedSupabaseAdminClient && cachedSupabaseAdminKey === cacheKey) {
+    return cachedSupabaseAdminClient;
+  }
+
+  try {
+    cachedSupabaseAdminClient = createClient(url, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
+    cachedSupabaseAdminKey = cacheKey;
+    return cachedSupabaseAdminClient;
+  } catch (e) {
+    console.warn('Supabase admin client initialization failed:', e.message);
+    return null;
   }
-} catch (e) {
-  console.warn('Supabase admin client not initialized yet:', e.message);
 }
 
 // In-Memory Rate Limiting Cache
@@ -59,7 +100,7 @@ function checkRateLimit(map, ip, maxAttempts, windowMs) {
 }
 
 // Clean up old rate limit records every 10 minutes
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of rateLimits.adminLogin.entries()) {
     if (now > rec.resetAt) rateLimits.adminLogin.delete(ip);
@@ -68,6 +109,7 @@ setInterval(() => {
     if (now > rec.resetAt) rateLimits.checkout.delete(ip);
   }
 }, 600000);
+if (cleanupTimer.unref) cleanupTimer.unref();
 
 // Active Admin Sessions Cache (Synchronized with admin_sessions table if configured)
 const activeAdminSessions = new Map(); // tokenHash -> { csrfToken, expiresAt, ip }
@@ -78,23 +120,35 @@ function parseCookies(req) {
   const rc = req.headers.cookie;
   if (rc) {
     rc.split(';').forEach(cookie => {
-      const parts = cookie.split('=');
-      list[parts.shift().trim()] = decodeURI(parts.join('='));
+      const idx = cookie.indexOf('=');
+      if (idx === -1) return;
+      const key = cookie.slice(0, idx).trim();
+      const rawVal = cookie.slice(idx + 1).trim();
+      try {
+        list[key] = decodeURIComponent(rawVal);
+      } catch (_) {
+        list[key] = rawVal;
+      }
     });
   }
   return list;
 }
 
+function isRequestSecure(req) {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  if (typeof forwardedProto === 'string') {
+    return forwardedProto.split(',')[0].trim().toLowerCase() === 'https';
+  }
+  return Boolean(req.socket && req.socket.encrypted);
+}
+
 function timingSafeCompare(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) {
-    // Constant time dummy comparison
-    crypto.timingSafeEqual(bufA, bufA);
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length === 0 || b.length === 0) {
     return false;
   }
-  return crypto.timingSafeEqual(bufA, bufB);
+  const digestA = crypto.createHmac('sha256', COMPARE_HMAC_KEY).update(a, 'utf8').digest();
+  const digestB = crypto.createHmac('sha256', COMPARE_HMAC_KEY).update(b, 'utf8').digest();
+  return crypto.timingSafeEqual(digestA, digestB);
 }
 
 function parseJsonBody(req) {
@@ -126,13 +180,13 @@ function sendJson(res, statusCode, data, headers = {}) {
   res.end(JSON.stringify(data));
 }
 
-// Admin Session Verification
+// Admin Session & CSRF Verification
 async function verifyAdminSession(req) {
   const cookies = parseCookies(req);
   const sessionToken = cookies['aura_admin_session'];
   if (!sessionToken) return false;
 
-  const tokenHash = crypto.createHash('sha256').update(sessionToken + SESSION_SECRET).digest('hex');
+  const tokenHash = crypto.createHash('sha256').update(sessionToken + getSessionSecret()).digest('hex');
   const now = Date.now();
 
   const memSession = activeAdminSessions.get(tokenHash);
@@ -145,8 +199,9 @@ async function verifyAdminSession(req) {
   }
 
   // If supabaseAdmin configured, check admin_sessions table
-  if (supabaseAdmin) {
-    const { data, error } = await supabaseAdmin
+  const adminDb = getSupabaseAdmin();
+  if (adminDb) {
+    const { data, error } = await adminDb
       .from('admin_sessions')
       .select('*')
       .eq('session_token_hash', tokenHash)
@@ -164,6 +219,11 @@ async function verifyAdminSession(req) {
   }
 
   return false;
+}
+
+function verifyCsrfToken(req, adminSession) {
+  const provided = req.headers['x-csrf-token'];
+  return typeof provided === 'string' && timingSafeCompare(provided, adminSession.csrfToken);
 }
 
 // MIME Types for Static Delivery
@@ -197,7 +257,8 @@ const server = http.createServer(async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'aura-fashion-server',
-      supabaseConfigured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+      adminAuthConfigured: Boolean(getConfiguredAdminPassword()),
+      supabaseConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
     });
   }
 
@@ -219,28 +280,39 @@ const server = http.createServer(async (req, res) => {
   // API ROUTE 1: Standalone Password-Only Admin Login
   // ==========================================================================
   if (pathname === '/api/admin/login' && req.method === 'POST') {
+    const configured = getConfiguredAdminPassword();
+    if (!configured) {
+      return sendJson(res, 503, {
+        error: 'Administrator password is not configured on the server. Set AURA-admin (or AURA_ADMIN_PASSWORD / AURA_ADMIN / ADMIN_PASSWORD) in Render Environment Variables.'
+      });
+    }
+
     if (!checkRateLimit(rateLimits.adminLogin, clientIp, 5, 15 * 60 * 1000)) {
       return sendJson(res, 429, { error: 'Too many failed login attempts. Please wait 15 minutes.' });
     }
 
     try {
       const body = await parseJsonBody(req);
-      const password = body.password || '';
+      const password = typeof body.password === 'string' ? body.password : '';
 
-      if (!timingSafeCompare(password, ADMIN_PASSWORD)) {
+      if (!password || !timingSafeCompare(password, configured.password)) {
         return sendJson(res, 401, { error: 'Invalid administrator password.' });
       }
 
+      // Reset brute-force counter upon successful authentication
+      rateLimits.adminLogin.delete(clientIp);
+
       // Generate cryptographically secure tokens
       const sessionToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash = crypto.createHash('sha256').update(sessionToken + SESSION_SECRET).digest('hex');
+      const tokenHash = crypto.createHash('sha256').update(sessionToken + getSessionSecret()).digest('hex');
       const csrfToken = crypto.randomBytes(24).toString('hex');
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
 
       activeAdminSessions.set(tokenHash, { csrfToken, expiresAt, ip: clientIp });
 
-      if (supabaseAdmin) {
-        await supabaseAdmin.from('admin_sessions').insert({
+      const adminDb = getSupabaseAdmin();
+      if (adminDb) {
+        await adminDb.from('admin_sessions').insert({
           session_token_hash: tokenHash,
           csrf_token: csrfToken,
           ip_address: clientIp,
@@ -249,7 +321,7 @@ const server = http.createServer(async (req, res) => {
         }).catch(err => console.warn('Could not persist admin_sessions to DB:', err.message));
       }
 
-      const isSecure = process.env.NODE_ENV === 'production';
+      const isSecure = isRequestSecure(req);
       const cookieHeader = `aura_admin_session=${sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${isSecure ? '; Secure' : ''}`;
 
       return sendJson(res, 200, {
@@ -271,12 +343,14 @@ const server = http.createServer(async (req, res) => {
     const adminSession = await verifyAdminSession(req);
     if (adminSession) {
       activeAdminSessions.delete(adminSession.tokenHash);
-      if (supabaseAdmin) {
-        await supabaseAdmin.from('admin_sessions').delete().eq('session_token_hash', adminSession.tokenHash).catch(() => {});
+      const adminDb = getSupabaseAdmin();
+      if (adminDb) {
+        await adminDb.from('admin_sessions').delete().eq('session_token_hash', adminSession.tokenHash).catch(() => {});
       }
     }
+    const isSecure = isRequestSecure(req);
     return sendJson(res, 200, { success: true }, {
-      'Set-Cookie': 'aura_admin_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
+      'Set-Cookie': `aura_admin_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${isSecure ? '; Secure' : ''}`
     });
   }
 
@@ -342,8 +416,10 @@ const server = http.createServer(async (req, res) => {
       const payloadFingerprint = crypto.createHash('sha256').update(canonicalPayload).digest('hex');
 
       // Forward with User's JWT Context
-      if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-        const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+      if (createClient && supabaseUrl && supabaseAnonKey) {
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
           global: { headers: { Authorization: `Bearer ${token}` } }
         });
 
@@ -389,6 +465,9 @@ const server = http.createServer(async (req, res) => {
     if (!adminSession) {
       return sendJson(res, 401, { error: 'Unauthorized. Admin session required.' });
     }
+    if (!verifyCsrfToken(req, adminSession)) {
+      return sendJson(res, 403, { error: 'Invalid or missing CSRF token.' });
+    }
 
     try {
       const body = await parseJsonBody(req);
@@ -398,8 +477,9 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'Order ID is required' });
       }
 
-      if (supabaseAdmin) {
-        const { data, error } = await supabaseAdmin.rpc('cancel_order_atomic', {
+      const adminDb = getSupabaseAdmin();
+      if (adminDb) {
+        const { data, error } = await adminDb.rpc('cancel_order_atomic', {
           p_order_id: orderId,
           p_admin_notes: adminNotes || 'Cancelled via Admin Portal'
         });
@@ -423,6 +503,9 @@ const server = http.createServer(async (req, res) => {
     const adminSession = await verifyAdminSession(req);
     if (!adminSession) {
       return sendJson(res, 401, { error: 'Unauthorized. Admin session required.' });
+    }
+    if (!verifyCsrfToken(req, adminSession)) {
+      return sendJson(res, 403, { error: 'Invalid or missing CSRF token.' });
     }
 
     try {
@@ -496,8 +579,9 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Supabase Storage Fallback
-      if (supabaseAdmin) {
-        const { data, error } = await supabaseAdmin.storage
+      const adminDb = getSupabaseAdmin();
+      if (adminDb) {
+        const { data, error } = await adminDb.storage
           .from('aura-assets')
           .upload(`${timestamp}-${sanitizedName}`, fileBuffer, {
             contentType: 'image/jpeg',
@@ -505,7 +589,7 @@ const server = http.createServer(async (req, res) => {
           });
 
         if (!error && data) {
-          const { data: publicData } = supabaseAdmin.storage
+          const { data: publicData } = adminDb.storage
             .from('aura-assets')
             .getPublicUrl(data.path);
 
@@ -568,8 +652,19 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`AURA Production Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  if (!getConfiguredAdminPassword()) {
+    console.warn('[AURA] Warning: No admin password environment variable set (checked AURA-admin, AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD). Admin login will fail closed with HTTP 503 until configured.');
+  }
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`AURA Production Server running on port ${PORT}`);
+  });
+}
 
-module.exports = server;
+module.exports = {
+  server,
+  getConfiguredAdminPassword,
+  getSessionSecret,
+  timingSafeCompare,
+  ADMIN_PASSWORD_ENV_KEYS
+};

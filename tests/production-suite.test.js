@@ -413,6 +413,135 @@ async function startSuite() {
     assert.strictEqual(pruned[0].productId, 'aura-p25');
   });
 
+  // HTTP Integration Tests for Dynamic Admin Authentication (No Hardcoded Fallback)
+  const { server, ADMIN_PASSWORD_ENV_KEYS } = require('../server');
+
+  function httpJsonRequest(port, method, reqPath, bodyObj = null, headers = {}) {
+    return new Promise((resolve, reject) => {
+      const payload = bodyObj ? JSON.stringify(bodyObj) : null;
+      const reqHeaders = { ...headers };
+      if (payload) {
+        reqHeaders['Content-Type'] = 'application/json';
+        reqHeaders['Content-Length'] = Buffer.byteLength(payload);
+      }
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port,
+        path: reqPath,
+        method,
+        headers: reqHeaders
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            resolve({
+              status: res.statusCode,
+              headers: res.headers,
+              body: data ? JSON.parse(data) : null
+            });
+          } catch (e) {
+            resolve({ status: res.statusCode, headers: res.headers, body: data });
+          }
+        });
+      });
+      req.on('error', reject);
+      if (payload) req.write(payload);
+      req.end();
+    });
+  }
+
+  const savedEnv = {};
+  for (const k of ADMIN_PASSWORD_ENV_KEYS) {
+    savedEnv[k] = process.env[k];
+  }
+  const clearAdminEnv = () => {
+    for (const k of ADMIN_PASSWORD_ENV_KEYS) {
+      delete process.env[k];
+    }
+  };
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const testPort = server.address().port;
+
+  try {
+    // Test 14: Fails closed when no admin password env var is configured
+    await runAsyncTest('14. Admin login fails closed (HTTP 503) when unconfigured and rejects legacy hardcoded password', async () => {
+      clearAdminEnv();
+      const healthRes = await httpJsonRequest(testPort, 'GET', '/health');
+      assert.strictEqual(healthRes.status, 200);
+      assert.strictEqual(healthRes.body.adminAuthConfigured, false);
+
+      const loginRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'aura_admin_2026' });
+      assert.strictEqual(loginRes.status, 503);
+    });
+
+    // Test 15: Hyphenated Render env var AURA-admin via bracket notation
+    await runAsyncTest('15. Admin login reads Render hyphenated env var AURA-admin dynamically', async () => {
+      clearAdminEnv();
+      process.env['AURA-admin'] = 'render-hyphen-secret-1';
+
+      const badRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'wrong-password' });
+      assert.strictEqual(badRes.status, 401);
+
+      const okRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
+      assert.strictEqual(okRes.status, 200);
+      assert.strictEqual(okRes.body.success, true);
+      assert.ok(okRes.body.csrfToken);
+
+      const setCookie = okRes.headers['set-cookie'] && okRes.headers['set-cookie'][0];
+      assert.ok(setCookie && setCookie.includes('aura_admin_session='));
+      const cookiePair = setCookie.split(';')[0];
+
+      const sessionRes = await httpJsonRequest(testPort, 'GET', '/api/admin/check-session', null, { Cookie: cookiePair });
+      assert.strictEqual(sessionRes.status, 200);
+      assert.strictEqual(sessionRes.body.authenticated, true);
+
+      // CSRF enforcement on protected POST endpoint
+      const noCsrf = await httpJsonRequest(testPort, 'POST', '/api/admin/cancel-order', { orderId: 'AURA-2611-10001' }, { Cookie: cookiePair });
+      assert.strictEqual(noCsrf.status, 403);
+
+      const withCsrf = await httpJsonRequest(testPort, 'POST', '/api/admin/cancel-order', { orderId: 'AURA-2611-10001' }, {
+        Cookie: cookiePair,
+        'X-CSRF-Token': okRes.body.csrfToken
+      });
+      assert.strictEqual(withCsrf.status, 200);
+    });
+
+    // Test 16: Dynamic update without code edits or restart
+    await runAsyncTest('16. Updating process.env["AURA-admin"] takes effect immediately on next login', async () => {
+      clearAdminEnv();
+      process.env['AURA-admin'] = 'rotated-secret-v2';
+
+      const oldRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'render-hyphen-secret-1' });
+      assert.strictEqual(oldRes.status, 401);
+
+      const newRes = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: 'rotated-secret-v2' });
+      assert.strictEqual(newRes.status, 200);
+      assert.strictEqual(newRes.body.success, true);
+    });
+
+    // Test 17: Standard underscore aliases (AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD)
+    await runAsyncTest('17. Underscore admin password aliases (AURA_ADMIN_PASSWORD, AURA_ADMIN, ADMIN_PASSWORD) work dynamically', async () => {
+      for (const alias of ['AURA_ADMIN_PASSWORD', 'AURA_ADMIN', 'ADMIN_PASSWORD']) {
+        clearAdminEnv();
+        const secret = `secret-for-${alias}`;
+        process.env[alias] = secret;
+        const res = await httpJsonRequest(testPort, 'POST', '/api/admin/login', { password: secret });
+        assert.strictEqual(res.status, 200, `Expected 200 for ${alias}`);
+      }
+    });
+  } finally {
+    for (const k of ADMIN_PASSWORD_ENV_KEYS) {
+      if (savedEnv[k] === undefined) {
+        delete process.env[k];
+      } else {
+        process.env[k] = savedEnv[k];
+      }
+    }
+    await new Promise((resolve) => server.close(resolve));
+  }
+
   console.log('\n================================================================');
   console.log(`TEST SUITE RESULTS: ${testsPassed} PASSED, ${testsFailed} FAILED`);
   console.log('================================================================\n');
