@@ -1739,12 +1739,21 @@ function renderEmptyCatalogHtml() {
   `;
 }
 
+function getStoreCategories() {
+  const defaults = ['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'];
+  const liveCats = (window.AURA_STATE.products || [])
+    .filter(p => p && p.published !== false && p.category)
+    .map(p => String(p.category).trim());
+  return Array.from(new Set([...defaults, ...liveCats]));
+}
+
 function renderHomeView(app) {
   const s = window.AURA_STATE.settings || {};
   const publishedProducts = window.AURA_STATE.products.filter(p => p.published !== false);
   const featured = publishedProducts.filter(p => p.isFeatured || p.isNew).slice(0, 4);
   const featuredToShow = featured.length > 0 ? featured : publishedProducts.slice(0, 4);
   const drops = publishedProducts.filter(p => p.isDrop).slice(0, 4);
+  const categories = getStoreCategories();
 
   app.innerHTML = `
     <div class="container">
@@ -1771,10 +1780,10 @@ function renderHomeView(app) {
       </section>
 
       <div class="category-bar">
-        ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(cat => `
-          <div class="cat-chip ${activeCategory === cat ? 'active' : ''}" onclick="filterCategory('${cat}')">
+        ${categories.map(cat => `
+          <div class="cat-chip ${activeCategory === cat ? 'active' : ''}" onclick="filterCategory('${escapeHtml(cat)}')">
             ${cat === 'All' ? '<i class="fa-solid fa-border-all"></i>' : ''}
-            <span>${cat}</span>
+            <span>${escapeHtml(cat)}</span>
           </div>
         `).join('')}
       </div>
@@ -1876,8 +1885,8 @@ function renderShopView(app) {
 
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
           <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--text-sub); margin-right: 6px;">Category:</span>
-          ${['All', 'Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'].map(c => `
-            <button class="cat-chip ${activeCategory === c ? 'active' : ''}" style="padding: 6px 14px; font-size: 12px;" onclick="filterCategory('${c}')">${c}</button>
+          ${getStoreCategories().map(c => `
+            <button class="cat-chip ${activeCategory === c ? 'active' : ''}" style="padding: 6px 14px; font-size: 12px;" onclick="filterCategory('${escapeHtml(c)}')">${escapeHtml(c)}</button>
           `).join('')}
 
           <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">

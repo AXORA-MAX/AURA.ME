@@ -476,7 +476,14 @@
       opacity: 1;
     }
 
+    .mobile-menu-btn {
+      display: none;
+    }
+
     @media (max-width: 900px) {
+      .mobile-menu-btn {
+        display: inline-flex;
+      }
       .admin-sidebar {
         transform: translateX(-100%);
       }
@@ -485,7 +492,7 @@
       }
       .admin-main {
         margin-left: 0;
-        padding: 24px;
+        padding: 20px;
       }
     }
   </style>
@@ -542,15 +549,16 @@
 
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px;">
           <div class="form-group">
-            <label class="form-label">Category *</label>
-            <select id="prod-category" class="form-select">
-              <option value="Tees">Tees</option>
-              <option value="Hoodies">Hoodies</option>
-              <option value="Pants">Pants</option>
-              <option value="Accessories">Accessories</option>
-              <option value="Men">Men</option>
-              <option value="Unisex">Unisex</option>
-            </select>
+            <label class="form-label">Category / New Catalog *</label>
+            <input type="text" id="prod-category" list="prod-category-list" class="form-input" placeholder="Select or type new category" required>
+            <datalist id="prod-category-list">
+              <option value="Tees"></option>
+              <option value="Hoodies"></option>
+              <option value="Pants"></option>
+              <option value="Accessories"></option>
+              <option value="Men"></option>
+              <option value="Unisex"></option>
+            </datalist>
           </div>
           <div class="form-group">
             <label class="form-label">Price (BDT) *</label>
@@ -714,14 +722,23 @@
   <!-- Main Administrative Content Canvas -->
   <main class="admin-main">
     <div class="top-header">
-      <div>
-        <h1 class="page-title" id="current-page-title">Overview & Analytics</h1>
-        <div class="page-subtitle" id="current-page-subtitle">Real-time GitHub aura-product branch metrics, inventory and live orders.</div>
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <button type="button" class="btn btn-outline mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Toggle Menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <h1 class="page-title" id="current-page-title">Overview & Analytics</h1>
+          <div class="page-subtitle" id="current-page-subtitle">Real-time GitHub aura-product branch metrics, inventory and live orders.</div>
+        </div>
       </div>
       <div class="top-actions">
         <span id="github-status-pill" class="brand-badge" style="background: var(--surface-sub); color: var(--text-main); border: 1px solid var(--border-card);">
           BRANCH: AURA-PRODUCT
         </span>
+        <button type="button" onclick="openProductModal()" class="btn btn-gold" data-testid="header-add-product-btn">
+          <i class="fa-solid fa-plus"></i>
+          <span>Add New Product</span>
+        </button>
         <button onclick="loadAllData(true)" class="btn btn-outline">
           <i class="fa-solid fa-rotate"></i>
           <span>Refresh Live Data</span>
@@ -996,7 +1013,11 @@
         <div class="card">
           <div class="card-title">
             <span>Recent Live Orders</span>
-            <button class="btn btn-outline" onclick="switchTab('orders')">View All Orders</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-gold" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> Add Catalog Product</button>
+              <button class="btn btn-outline" onclick="switchTab('products')">Manage Catalog</button>
+              <button class="btn btn-outline" onclick="switchTab('orders')">View All Orders</button>
+            </div>
           </div>
           ${ADMIN_STATE.orders.length > 0 ? `
             <div class="table-container">
@@ -1114,7 +1135,19 @@
       `;
     }
 
+    function syncCategoryDatalist() {
+      const listEl = document.getElementById('prod-category-list');
+      if (!listEl) return;
+      const defaults = ['Tees', 'Hoodies', 'Pants', 'Accessories', 'Men', 'Unisex'];
+      const dynamicCats = (ADMIN_STATE.products || []).map(p => p && p.category).filter(Boolean);
+      const unique = Array.from(new Set([...defaults, ...dynamicCats]));
+      listEl.innerHTML = unique.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    }
+
     function openProductModal(productId = null) {
+      syncCategoryDatalist();
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('open');
       const p = productId ? ADMIN_STATE.products.find(x => x.id === productId) : null;
       document.getElementById('product-modal-title').textContent = p ? `Edit ${p.name}` : 'Add New Product';
       document.getElementById('prod-editing-id').value = p ? p.id : '';

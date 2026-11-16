@@ -12,6 +12,33 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+function loadDotEnv(envFilePath = path.join(__dirname, '.env')) {
+  if (process.env.AURA_SKIP_DOTENV === '1') return;
+  try {
+    if (!fs.existsSync(envFilePath)) return;
+    const content = fs.readFileSync(envFilePath, 'utf8');
+    for (const rawLine of content.split(/\r?\n/)) {
+      let line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+      if (line.startsWith('export ')) line = line.slice(7).trim();
+      const eqIdx = line.indexOf('=');
+      if (eqIdx <= 0) continue;
+      const key = line.slice(0, eqIdx).trim();
+      let val = line.slice(eqIdx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      if (key && (process.env[key] === undefined || process.env[key] === '')) {
+        process.env[key] = val;
+      }
+    }
+  } catch (_) {
+    // Non-fatal: rely on platform environment variables
+  }
+}
+
+loadDotEnv();
+
 const {
   getGitHubConfig,
   uploadImageAsset,
@@ -241,7 +268,8 @@ const server = http.createServer(async (req, res) => {
       storage: 'github',
       branch: gh.productBranch,
       adminAuthConfigured: Boolean(getConfiguredAdminPassword()),
-      githubConfigured: gh.configured
+      githubConfigured: gh.configured,
+      missingGithubVars: gh.missingVars
     });
   }
 
@@ -261,8 +289,9 @@ const server = http.createServer(async (req, res) => {
       const gh = getGitHubConfig();
       if (!gh.configured) {
         return sendJson(res, 503, {
-          error: 'GitHub storage is not configured. Set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables.',
+          error: `GitHub storage is not configured. Missing environment variables: ${gh.missingVars.join(', ')}.`,
           githubConfigured: false,
+          missingGithubVars: gh.missingVars,
           products: [],
           sizeGuides: []
         });
@@ -553,6 +582,7 @@ if (require.main === module) {
 
 module.exports = {
   server,
+  loadDotEnv,
   getConfiguredAdminPassword,
   getSessionSecret,
   timingSafeCompare,

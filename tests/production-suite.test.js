@@ -7,9 +7,13 @@
 
 const assert = require('assert');
 const crypto = require('crypto');
+const fs = require('fs');
 const http = require('http');
+const os = require('os');
+const path = require('path');
 
-const { server, ADMIN_PASSWORD_ENV_KEYS } = require('../server');
+process.env.AURA_SKIP_DOTENV = '1';
+const { server, loadDotEnv, ADMIN_PASSWORD_ENV_KEYS } = require('../server');
 const { clearStoreCache } = require('../lib/github-store');
 
 let testsPassed = 0;
@@ -689,6 +693,32 @@ async function startSuite() {
       assert.strictEqual(admin.status, 200);
       assert.strictEqual(/supabase/i.test(admin.body), false);
       assert.ok(admin.body.includes('aura-product'));
+      assert.ok(admin.body.includes('header-add-product-btn'));
+      assert.ok(admin.body.includes('prod-category-list'));
+    });
+
+    // 11. Built-in .env Loader
+    await runTest('11. Built-in loadDotEnv loads quoted/unquoted GitHub & admin variables cleanly', async () => {
+      const tmpEnv = path.join(os.tmpdir(), `aura-test-${Date.now()}.env`);
+      fs.writeFileSync(tmpEnv, [
+        '# Sample env file',
+        'AURA_TEST_OWNER="aura-owner"',
+        "AURA_TEST_REPO='aura-repo'",
+        'export AURA_TEST_BRANCH=aura-product'
+      ].join('\n'));
+      delete process.env.AURA_SKIP_DOTENV;
+      try {
+        loadDotEnv(tmpEnv);
+        assert.strictEqual(process.env.AURA_TEST_OWNER, 'aura-owner');
+        assert.strictEqual(process.env.AURA_TEST_REPO, 'aura-repo');
+        assert.strictEqual(process.env.AURA_TEST_BRANCH, 'aura-product');
+      } finally {
+        process.env.AURA_SKIP_DOTENV = '1';
+        delete process.env.AURA_TEST_OWNER;
+        delete process.env.AURA_TEST_REPO;
+        delete process.env.AURA_TEST_BRANCH;
+        try { fs.unlinkSync(tmpEnv); } catch (_) {}
+      }
     });
   } finally {
     for (const k of envKeys) {
